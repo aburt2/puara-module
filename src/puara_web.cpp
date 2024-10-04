@@ -120,7 +120,8 @@ httpd_handle_t PuaraImpl::start_webserver(void) {
   PuaraImpl::settings.user_ctx = (char*)"/spiffs/settings.html";
 
   PuaraImpl::settingspost.uri = "/settings.html";
-  PuaraImpl::settingspost.method = HTTP_POST, PuaraImpl::settingspost.handler = settings_post_handler,
+  PuaraImpl::settingspost.method = HTTP_POST,
+  PuaraImpl::settingspost.handler = settings_post_handler,
   PuaraImpl::settingspost.user_ctx = (char*)"/spiffs/settings.html";
 
   // Start the httpd server
@@ -158,10 +159,10 @@ std::string PuaraImpl::prepare_index() {
   PuaraImpl::find_and_replace("%DMINAME%", PuaraImpl::dmiName, contents);
   if (PuaraImpl::StaIsConnected) {
     PuaraImpl::find_and_replace("%STATUS%",
-                            "Currently connected on "
-                            "<strong style=\"color:Tomato;\">" +
-                                PuaraImpl::wifiSSID + "</strong> network",
-                            contents);
+                                "Currently connected on "
+                                "<strong style=\"color:Tomato;\">" +
+                                    PuaraImpl::wifiSSID + "</strong> network",
+                                contents);
   } else {
     PuaraImpl::find_and_replace("%STATUS%", "Currently not connected to any network", contents);
   }

@@ -8,13 +8,14 @@
 #ifndef PUARA_H
 #define PUARA_H
 
-#include <string_view>
 #include <string>
+#include <string_view>
+
 #include "puara_config.hpp"
 
 typedef void* httpd_handle_t;
 class Puara {
-public:
+ public:
   void start(PuaraImpl::Monitors monitor = PuaraImpl::UART_MONITOR);
 
   httpd_handle_t start_webserver(void);
@@ -24,7 +25,7 @@ public:
   unsigned int get_version();
   void set_version(unsigned int user_version);
   std::string getIP1();
-  std::string getIP2();  
+  std::string getIP2();
   bool IP1_ready();
   bool IP2_ready();
   int unsigned getPORT1();

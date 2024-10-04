@@ -7,8 +7,8 @@ inline int module_monitor = UART_MONITOR;
 
 // public API
 
-  bool start_serial_listening();
-  void send_serial_data(std::string data);
+bool start_serial_listening();
+void send_serial_data(std::string data);
 
 // private API
 void interpret_serial(void* pvParameters);

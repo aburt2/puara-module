@@ -3,9 +3,9 @@
 #include <nvs_flash.h>
 
 #include <algorithm>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <cstring>
 
 #include "puara_config.hpp"
 
@@ -184,8 +184,9 @@ void PuaraImpl::start_wifi() {
   strncpy((char*)PuaraImpl::wifi_config_sta.sta.password,
           PuaraImpl::wifiPSK.c_str(),
           PuaraImpl::wifiPSK.length() + 1);
-  strncpy(
-      (char*)PuaraImpl::wifi_config_ap.ap.ssid, PuaraImpl::dmiName.c_str(), PuaraImpl::dmiName.length() + 1);
+  strncpy((char*)PuaraImpl::wifi_config_ap.ap.ssid,
+          PuaraImpl::dmiName.c_str(),
+          PuaraImpl::dmiName.length() + 1);
   PuaraImpl::wifi_config_ap.ap.ssid_len = PuaraImpl::dmiName.length();
   PuaraImpl::wifi_config_ap.ap.channel = PuaraImpl::channel;
   strncpy((char*)PuaraImpl::wifi_config_ap.ap.password,
@@ -209,9 +210,9 @@ void PuaraImpl::start_wifi() {
 }
 
 void PuaraImpl::sta_event_handler(void* arg,
-                              esp_event_base_t event_base,
-                              int32_t event_id,
-                              void* event_data) {
+                                  esp_event_base_t event_base,
+                                  int32_t event_id,
+                                  void* event_data) {
   // int counter = 0;
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
     esp_wifi_connect();

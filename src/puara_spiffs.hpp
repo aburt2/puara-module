@@ -11,17 +11,17 @@ struct settingsVariables {
 };
 
 // Public api
-  void config_spiffs();
-  void mount_spiffs();
-  void unmount_spiffs();
+void config_spiffs();
+void mount_spiffs();
+void unmount_spiffs();
 
-  void read_config_json();
-  void write_config_json();
-  void read_settings_json();
-  void write_settings_json();
+void read_config_json();
+void write_config_json();
+void read_settings_json();
+void write_settings_json();
 
-  double getVarNumber(std::string varName);
-  std::string getVarText(std::string varName);
+double getVarNumber(std::string varName);
+std::string getVarText(std::string varName);
 
 // Private API used by puara_serial
 inline std::vector<PuaraImpl::settingsVariables> variables;

@@ -1,6 +1,5 @@
 #include "puara_config.hpp"
 
-
 unsigned int PuaraImpl::get_version() { return version; };
 
 void PuaraImpl::set_version(unsigned int user_version) { version = user_version; };

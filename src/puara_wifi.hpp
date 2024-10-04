@@ -4,14 +4,15 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <freertos/task.h>
+
 #include <string>
 
 namespace PuaraImpl {
 // Public API
 
-  void start_wifi();
-  void wifi_scan(void);
-  bool get_StaIsConnected();
+void start_wifi();
+void wifi_scan(void);
+bool get_StaIsConnected();
 
 // Private API
 
