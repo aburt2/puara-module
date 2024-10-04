@@ -21,7 +21,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <freertos/task.h>
-#include <mdns.h>
 #include <nvs_flash.h>
 #include <stdio.h>
 #include <sys/param.h>
@@ -187,8 +186,7 @@ class Puara {
   static void write_settings_json();
   static bool start_serial_listening();
   static void send_serial_data(std::string data);
-  static void start_mdns_service(const char* device_name, const char* instance_name);
-  static void start_mdns_service(std::string device_name, std::string instance_name);
+  static void start_mdns_service(std::string_view device_name, std::string_view instance_name);
   static void wifi_scan(void);
   static bool get_StaIsConnected();
   static double getVarNumber(std::string varName);
