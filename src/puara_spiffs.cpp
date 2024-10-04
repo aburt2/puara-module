@@ -1,5 +1,7 @@
 #include "puara.h"
 
+#include <cJSON.h>
+
 esp_vfs_spiffs_conf_t Puara::spiffs_config;
 std::string Puara::spiffs_base_path;
 

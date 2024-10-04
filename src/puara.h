@@ -10,14 +10,12 @@
 
 #define PUARA_SERIAL_BUFSIZE 1024
 
-#include <cJSON.h>
-#include <driver/uart.h>
 #include <esp_err.h>
-#include <esp_http_server.h>
 #include <esp_spi_flash.h>
 #include <esp_spiffs.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
+#include <esp_http_server.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <freertos/task.h>
@@ -34,12 +32,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-#include <driver/usb_serial_jtag.h>  // jtag module
-#endif
-#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-#include "esp32-hal-tinyusb.h"
-#endif
 
 // The following libraries need to be included if using the espidf framework:
 #include <esp_event.h>
@@ -51,6 +43,7 @@
 #include <sys/unistd.h>
 
 #include "esp_console.h"
+#include <string_view>
 
 class Puara {
  private:

@@ -1,5 +1,7 @@
 #include "puara.h"
 
+#include <esp_http_server.h>
+
 httpd_uri_t Puara::reboot;
 httpd_uri_t Puara::index;
 httpd_uri_t Puara::style;
