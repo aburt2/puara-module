@@ -1,5 +1,4 @@
 #include "puara_device.hpp"
-#include "puara_impl.hpp"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>

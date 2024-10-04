@@ -9,10 +9,10 @@
 #include <iomanip>
 #include <iostream>
 
-#include "puara_impl.hpp"
 #include "puara_config.hpp"
 
 namespace PuaraImpl {
+
 esp_vfs_spiffs_conf_t spiffs_config;
 std::string spiffs_base_path;
 

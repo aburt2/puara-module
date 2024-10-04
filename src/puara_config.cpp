@@ -1,6 +1,5 @@
 #include "puara_config.hpp"
 
-#include "puara_impl.hpp"
 
 unsigned int PuaraImpl::get_version() { return version; };
 

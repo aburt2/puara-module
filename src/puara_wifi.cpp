@@ -7,7 +7,6 @@
 #include <iostream>
 #include <cstring>
 
-#include "puara_impl.hpp"
 #include "puara_config.hpp"
 
 namespace PuaraImpl {

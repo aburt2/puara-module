@@ -2,7 +2,6 @@
 
 #include <driver/uart.h>
 
-#include "puara_impl.hpp"
 #include "puara_config.hpp"
 #include "puara_device.hpp"
 #include "puara_spiffs.hpp"

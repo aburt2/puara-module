@@ -7,12 +7,26 @@
 #include <iostream>
 #include <istream>
 
-#include "puara_impl.hpp"
 #include "puara_config.hpp"
 #include "puara_device.hpp"
 #include "puara_spiffs.hpp"
 #include "puara_utils.hpp"
 #include "puara_wifi.hpp"
+
+struct httpd_req;
+typedef struct httpd_req httpd_req_t;
+namespace PuaraImpl {
+
+esp_err_t index_get_handler(httpd_req_t* req);
+esp_err_t get_handler(httpd_req_t* req);
+esp_err_t style_get_handler(httpd_req_t* req);
+esp_err_t settings_get_handler(httpd_req_t* req);
+esp_err_t settings_post_handler(httpd_req_t* req);
+esp_err_t scan_get_handler(httpd_req_t* req);
+esp_err_t index_post_handler(httpd_req_t* req);
+std::string prepare_index();
+
+}  // namespace PuaraImpl
 
 namespace PuaraImpl {
 httpd_uri_t reboot;

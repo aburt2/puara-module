@@ -1,8 +1,7 @@
 #include <mdns.h>
 
 #include <iostream>
-
-#include "puara_impl.hpp"
+#include "puara_mdns.hpp"
 
 void PuaraImpl::start_mdns_service(std::string_view device_name, std::string_view instance_name) {
   // initialize mDNS service

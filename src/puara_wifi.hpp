@@ -7,6 +7,14 @@
 #include <string>
 
 namespace PuaraImpl {
+// Public API
+
+  void start_wifi();
+  void wifi_scan(void);
+  bool get_StaIsConnected();
+
+// Private API
+
 inline const int wifi_connected_bit = BIT0;
 inline const int wifi_fail_bit = BIT1;
 inline EventGroupHandle_t s_wifi_event_group;

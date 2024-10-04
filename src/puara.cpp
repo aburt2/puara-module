@@ -16,9 +16,12 @@ Edu Meneses (2022) - https://www.edumeneses.com
 
 #include <iostream>
 
-#include "puara_impl.hpp"
 #include "puara_config.hpp"
 #include "puara_serial.hpp"
+#include "puara_spiffs.hpp"
+#include "puara_web.hpp"
+#include "puara_wifi.hpp"
+#include "puara_mdns.hpp"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>

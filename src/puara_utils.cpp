@@ -2,7 +2,6 @@
 
 #include <iostream>
 
-#include "puara_impl.hpp"
 
 void PuaraImpl::find_and_replace(std::string old_text, std::string new_text, std::string& str) {
   std::size_t old_text_position = str.find(old_text);
