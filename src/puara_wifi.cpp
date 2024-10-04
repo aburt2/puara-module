@@ -1,0 +1,245 @@
+#include "puara.h"
+
+bool Puara::StaIsConnected = false;
+bool Puara::ApStarted = false;
+
+std::string Puara::currentSSID;
+std::string Puara::currentSTA_IP;
+std::string Puara::currentSTA_MAC;
+std::string Puara::currentAP_IP;
+std::string Puara::currentAP_MAC;
+
+EventGroupHandle_t Puara::s_wifi_event_group;
+wifi_config_t Puara::wifi_config_sta;
+wifi_config_t Puara::wifi_config_ap;
+
+short int Puara::connect_counter;
+
+void Puara::wifi_init() {
+  s_wifi_event_group = xEventGroupCreate();
+
+  ESP_ERROR_CHECK(esp_netif_init());
+
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
+  esp_netif_create_default_wifi_sta();
+  esp_netif_t* ap_netif = esp_netif_create_default_wifi_ap();  // saving pointer to
+                                                               // retrieve AP ip later
+
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+  // Set device hostname
+  esp_err_t setname = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, dmiName.c_str());
+  if (setname != ESP_OK) {
+    std::cout << "wifi_init: failed to set hostname: " << dmiName << std::endl;
+  } else {
+    std::cout << "wifi_init: hostname: " << dmiName << std::endl;
+  }
+
+  esp_event_handler_instance_t instance_any_id;
+  esp_event_handler_instance_t instance_got_ip;
+  ESP_ERROR_CHECK(esp_event_handler_instance_register(
+      WIFI_EVENT, ESP_EVENT_ANY_ID, &Puara::sta_event_handler, NULL, &instance_any_id));
+  ESP_ERROR_CHECK(esp_event_handler_instance_register(
+      IP_EVENT, IP_EVENT_STA_GOT_IP, &Puara::sta_event_handler, NULL, &instance_got_ip));
+
+  std::cout << "wifi_init: setting wifi mode" << std::endl;
+  if (persistentAP) {
+    std::cout << "wifi_init:     AP-STA mode" << std::endl;
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    std::cout << "wifi_init: loading AP config" << std::endl;
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config_ap));
+  } else {
+    std::cout << "wifi_init:     STA mode" << std::endl;
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+  }
+  std::cout << "wifi_init: loading STA config" << std::endl;
+  ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config_sta));
+  std::cout << "wifi_init: esp_wifi_start" << std::endl;
+  ESP_ERROR_CHECK(esp_wifi_start());
+
+  std::cout << "wifi_init: wifi_init finished." << std::endl;
+
+  /* Waiting until either the connection is established (Puara::wifi_connected_bit)
+   * or connection failed for the maximum number of re-tries (Puara::wifi_fail_bit).
+   * The bits are set by event_handler() (see above) */
+  EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
+                                         Puara::wifi_connected_bit | Puara::wifi_fail_bit,
+                                         pdFALSE,
+                                         pdFALSE,
+                                         portMAX_DELAY);
+
+  /* xEventGroupWaitBits() returns the bits before the call returned, hence we
+   * can test which event actually happened. */
+  if (bits & Puara::wifi_connected_bit) {
+    std::cout << "wifi_init: Connected to SSID: " << Puara::wifiSSID << std::endl;
+    currentSSID = wifiSSID;
+    Puara::StaIsConnected = true;
+  } else if (bits & Puara::wifi_fail_bit) {
+    std::cout << "wifi_init: Failed to connect to SSID: " << Puara::wifiSSID << std::endl;
+    if (!persistentAP) {
+      std::cout << "wifi_init: Failed to connect to SSID: " << Puara::wifiSSID
+                << "Switching to AP/STA mode" << std::endl;
+      ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+      std::cout << "wifi_init: loading AP config" << std::endl;
+      ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config_ap));
+      std::cout << "wifi_init: Trying to connect one more time to SSID before giving up."
+                << std::endl;
+      ESP_ERROR_CHECK(esp_wifi_start());
+    } else {
+      Puara::StaIsConnected = false;
+    }
+  } else {
+    std::cout << "wifi_init: UNEXPECTED EVENT" << std::endl;
+  }
+
+  /* The event will not be processed after unregister */
+  ESP_ERROR_CHECK(
+      esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip));
+  ESP_ERROR_CHECK(
+      esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
+  vEventGroupDelete(s_wifi_event_group);
+
+  // getting extra info
+  unsigned char temp_info[6] = {0};
+  esp_wifi_get_mac(WIFI_IF_STA, temp_info);
+  std::ostringstream tempBuf;
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[0] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[1] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[2] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[3] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[4] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[5];
+  Puara::currentSTA_MAC = tempBuf.str();
+  tempBuf.clear();             // preparing the ostringstream
+  tempBuf.str(std::string());  // buffer for reuse
+  esp_wifi_get_mac(WIFI_IF_AP, temp_info);
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[0] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[1] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[2] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[3] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[4] << ":";
+  tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[5];
+  Puara::currentAP_MAC = tempBuf.str();
+
+  esp_netif_ip_info_t ip_temp_info;
+  esp_netif_get_ip_info(ap_netif, &ip_temp_info);
+  tempBuf.clear();
+  tempBuf.str(std::string());
+  tempBuf << std::dec << esp_ip4_addr1_16(&ip_temp_info.ip) << ".";
+  tempBuf << std::dec << esp_ip4_addr2_16(&ip_temp_info.ip) << ".";
+  tempBuf << std::dec << esp_ip4_addr3_16(&ip_temp_info.ip) << ".";
+  tempBuf << std::dec << esp_ip4_addr4_16(&ip_temp_info.ip);
+  Puara::currentAP_IP = tempBuf.str();
+}
+
+
+void Puara::wifi_scan(void) {
+  uint16_t number = wifiScanSize;
+  wifi_ap_record_t ap_info[wifiScanSize];
+  uint16_t ap_count = 0;
+  memset(ap_info, 0, sizeof(ap_info));
+
+  esp_wifi_scan_start(NULL, true);
+  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
+  ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+  std::cout << "wifi_scan: Total APs scanned = " << ap_count << std::endl;
+  wifiAvailableSsid.clear();
+  for (int i = 0; (i < wifiScanSize) && (i < ap_count); i++) {
+    wifiAvailableSsid.append("<strong>SSID: </strong>");
+    wifiAvailableSsid.append(reinterpret_cast<const char*>(ap_info[i].ssid));
+    wifiAvailableSsid.append("<br>      (RSSI: ");
+    wifiAvailableSsid.append(std::to_string(ap_info[i].rssi));
+    wifiAvailableSsid.append(", Channel: ");
+    wifiAvailableSsid.append(std::to_string(ap_info[i].primary));
+    wifiAvailableSsid.append(")<br>");
+  }
+}
+
+
+void Puara::start_wifi() {
+  ApStarted = false;
+
+  // Check if wifiSSID is empty and wifiPSK have less than 8 characteres
+  if (dmiName.empty()) {
+    std::cout << "start_wifi: Module name unpopulated. Using default name: Puara" << std::endl;
+    dmiName = "Puara";
+  }
+  if (APpasswd.empty() || APpasswd.length() < 8 || APpasswd == "password") {
+    std::cout << "startWifi: AP password error. Possible causes:" << "\n"
+              << "startWifi:   - no AP password" << "\n"
+              << "startWifi:   - password is less than 8 characteres long" << "\n"
+              << "startWifi:   - password is set to \"password\"" << "\n"
+              << "startWifi: Using default AP password: password" << "\n"
+              << "startWifi: It is strongly recommended to change the password" << std::endl;
+    APpasswd = "password";
+  }
+  if (wifiSSID.empty()) {
+    std::cout << "start_wifi: No blank SSID allowed. Using default name: Puara" << std::endl;
+    wifiSSID = "Puara";
+  }
+
+  strncpy((char*)Puara::wifi_config_sta.sta.ssid,
+          Puara::wifiSSID.c_str(),
+          Puara::wifiSSID.length() + 1);
+  strncpy((char*)Puara::wifi_config_sta.sta.password,
+          Puara::wifiPSK.c_str(),
+          Puara::wifiPSK.length() + 1);
+  strncpy(
+      (char*)Puara::wifi_config_ap.ap.ssid, Puara::dmiName.c_str(), Puara::dmiName.length() + 1);
+  Puara::wifi_config_ap.ap.ssid_len = Puara::dmiName.length();
+  Puara::wifi_config_ap.ap.channel = Puara::channel;
+  strncpy((char*)Puara::wifi_config_ap.ap.password,
+          Puara::APpasswd.c_str(),
+          Puara::APpasswd.length() + 1);
+  Puara::wifi_config_ap.ap.max_connection = Puara::max_connection;
+  Puara::wifi_config_ap.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+
+  // Initialize NVS
+  esp_err_t ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ret = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(ret);
+
+  std::cout << "startWifi: Starting WiFi config" << std::endl;
+  Puara::connect_counter = 0;
+  wifi_init();
+  ApStarted = true;
+}
+
+
+void Puara::sta_event_handler(void* arg,
+                              esp_event_base_t event_base,
+                              int32_t event_id,
+                              void* event_data) {
+  // int counter = 0;
+  if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+    esp_wifi_connect();
+  } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+    printf("%d, %d", Puara::connect_counter, Puara::wifi_maximum_retry);
+    if (Puara::connect_counter < Puara::wifi_maximum_retry) {
+      Puara::connect_counter++;
+      esp_wifi_connect();
+      std::cout << "wifi/sta_event_handler: retry to connect to the AP" << std::endl;
+    } else {
+      xEventGroupSetBits(s_wifi_event_group, Puara::wifi_fail_bit);
+    }
+    std::cout << "wifi/sta_event_handler: connect to the AP fail" << std::endl;
+  } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+    ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
+
+    std::stringstream tempBuf;
+    tempBuf << esp_ip4_addr1_16(&event->ip_info.ip) << ".";
+    tempBuf << esp_ip4_addr2_16(&event->ip_info.ip) << ".";
+    tempBuf << esp_ip4_addr3_16(&event->ip_info.ip) << ".";
+    tempBuf << esp_ip4_addr4_16(&event->ip_info.ip);
+    Puara::currentSTA_IP = tempBuf.str();
+    std::cout << "wifi/sta_event_handler: got ip:" << Puara::currentSTA_IP << std::endl;
+    Puara::connect_counter = 0;
+    xEventGroupSetBits(s_wifi_event_group, Puara::wifi_connected_bit);
+  }
+}
+
+bool Puara::get_StaIsConnected() { return StaIsConnected; }
