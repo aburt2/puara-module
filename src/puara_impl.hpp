@@ -1,21 +1,13 @@
-//****************************************************************************//
-// Puara Module Manager - WiFi and file system functions                      //
-// Metalab - Société des Arts Technologiques (SAT)                            //
-// Input Devices and Music Interaction Laboratory (IDMIL), McGill University  //
-// Edu Meneses (2022) - https://www.edumeneses.com                            //
-//****************************************************************************//
-
-#ifndef PUARA_H
-#define PUARA_H
+#pragma once
 
 #include <string_view>
 #include <string>
 #include "puara_config.hpp"
 
 typedef void* httpd_handle_t;
-class Puara {
-public:
-  void start(PuaraImpl::Monitors monitor = PuaraImpl::UART_MONITOR);
+
+namespace PuaraImpl {
+  void start(Monitors monitor = UART_MONITOR);
 
   httpd_handle_t start_webserver(void);
   void stop_webserver(void);
@@ -54,6 +46,4 @@ public:
 
   double getVarNumber(std::string varName);
   std::string getVarText(std::string varName);
-};
-
-#endif
+}

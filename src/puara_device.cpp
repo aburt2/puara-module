@@ -1,12 +1,14 @@
 #include "puara_device.hpp"
+#include "puara_impl.hpp"
 
-#include "puara.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
-namespace Puara {
+namespace PuaraImpl {
 static const int reboot_delay = 3000;
 }
 
-void Puara::reboot_with_delay(void* pvParameter) {
+void PuaraImpl::reboot_with_delay(void* pvParameter) {
   vTaskDelay(reboot_delay / portTICK_RATE_MS);
   esp_restart();
 }

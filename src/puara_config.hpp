@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace Puara {
+namespace PuaraImpl {
 enum Monitors { UART_MONITOR = 0, JTAG_MONITOR = 1, USB_MONITOR = 2 };
 
 inline unsigned int version = 20220906;
@@ -21,4 +21,4 @@ inline unsigned int oscPORT2;
 inline unsigned int localPORT;
 inline std::string wifiAvailableSsid;
 
-}  // namespace Puara
+}  // namespace PuaraImpl

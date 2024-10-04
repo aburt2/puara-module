@@ -2,7 +2,7 @@
 
 #include <driver/uart.h>
 
-#include "puara.h"
+#include "puara_impl.hpp"
 #include "puara_config.hpp"
 #include "puara_device.hpp"
 #include "puara_spiffs.hpp"
@@ -17,11 +17,12 @@
 
 #define PUARA_SERIAL_BUFSIZE 1024
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <istream>
 
-namespace Puara {
+namespace PuaraImpl {
 char serial_data[PUARA_SERIAL_BUFSIZE];
 int serial_data_length;
 std::string serial_data_str;
@@ -30,13 +31,13 @@ std::string serial_data_str_buffer;
 // FIXME: refactor into std::string_view
 const std::string data_start = "<<<";
 const std::string data_end = ">>>";
-}  // namespace Puara
+}  // namespace PuaraImpl
 
-void Puara::send_serial_data(std::string data) {
-  std::cout << Puara::data_start << data << Puara::data_end << std::endl;
+void PuaraImpl::send_serial_data(std::string data) {
+  std::cout << PuaraImpl::data_start << data << PuaraImpl::data_end << std::endl;
 }
 
-void Puara::interpret_serial(void* pvParameters) {
+void PuaraImpl::interpret_serial(void* pvParameters) {
   while (1) {
     vTaskDelay(1000 / portTICK_RATE_MS);
     if (serial_data_str.empty()) {
@@ -44,18 +45,18 @@ void Puara::interpret_serial(void* pvParameters) {
     }
     if (serial_data_str.compare("reset") == 0 || serial_data_str.compare("reboot") == 0) {
       std::cout << "\nRebooting...\n" << std::endl;
-      xTaskCreate(&Puara::reboot_with_delay, "reboot_with_delay", 1024, NULL, 10, NULL);
+      xTaskCreate(&PuaraImpl::reboot_with_delay, "reboot_with_delay", 1024, NULL, 10, NULL);
     } else if (serial_data_str.compare("ping") == 0) {
       std::cout << "pong\n";
     } else if (serial_data_str.compare("whatareyou") == 0) {
-      Puara::send_serial_data(Puara::dmiName);
+      PuaraImpl::send_serial_data(PuaraImpl::dmiName);
     } else if (serial_data_str.rfind("sendconfig", 0) == 0) {
       serial_data_str_buffer = serial_data_str.substr(serial_data_str.find(" ") + 1);
-      Puara::read_config_json_internal(serial_data_str_buffer);
+      PuaraImpl::read_config_json_internal(serial_data_str_buffer);
     } else if (serial_data_str.rfind("writeconfig") == 0) {
-      Puara::write_config_json();
+      PuaraImpl::write_config_json();
     } else if (serial_data_str.compare("readconfig") == 0) {
-      Puara::mount_spiffs();
+      PuaraImpl::mount_spiffs();
       FILE* f = fopen("/spiffs/config.json", "r");
       if (f == NULL) {
         std::cout << "json: Failed to open file" << std::endl;
@@ -63,16 +64,16 @@ void Puara::interpret_serial(void* pvParameters) {
       }
       std::ifstream in("/spiffs/config.json");
       std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-      Puara::send_serial_data(contents);
+      PuaraImpl::send_serial_data(contents);
       fclose(f);
-      Puara::unmount_spiffs();
+      PuaraImpl::unmount_spiffs();
     } else if (serial_data_str.rfind("sendsettings", 0) == 0) {
       serial_data_str_buffer = serial_data_str.substr(serial_data_str.find(" ") + 1);
-      Puara::read_settings_json_internal(serial_data_str_buffer, true);
+      PuaraImpl::read_settings_json_internal(serial_data_str_buffer, true);
     } else if (serial_data_str.rfind("writesettings") == 0) {
-      Puara::write_settings_json();
+      PuaraImpl::write_settings_json();
     } else if (serial_data_str.compare("readsettings") == 0) {
-      Puara::mount_spiffs();
+      PuaraImpl::mount_spiffs();
       FILE* f = fopen("/spiffs/settings.json", "r");
       if (f == NULL) {
         std::cout << "json: Failed to open file" << std::endl;
@@ -80,9 +81,9 @@ void Puara::interpret_serial(void* pvParameters) {
       }
       std::ifstream in("/spiffs/settings.json");
       std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-      Puara::send_serial_data(contents);
+      PuaraImpl::send_serial_data(contents);
       fclose(f);
-      Puara::unmount_spiffs();
+      PuaraImpl::unmount_spiffs();
     } else {
       std::cout << "\nI don´t recognize the command \"" << serial_data_str << "\"" << std::endl;
     }
@@ -92,7 +93,7 @@ void Puara::interpret_serial(void* pvParameters) {
 
 /// REFACTOR: this is related to logging & debugging
 
-void Puara::uart_monitor(void* pvParameters) {
+void PuaraImpl::uart_monitor(void* pvParameters) {
   const int uart_num0 = 0;  // UART port 0
   uart_config_t uart_config0 = {
       .baud_rate = 115200,
@@ -126,7 +127,7 @@ void Puara::uart_monitor(void* pvParameters) {
   }
 }
 
-void Puara::jtag_monitor(void* pvParameters) {
+void PuaraImpl::jtag_monitor(void* pvParameters) {
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
   // Setup jtag module for USB Serial reads
   usb_serial_jtag_driver_config_t jtag_config{
@@ -155,7 +156,7 @@ void Puara::jtag_monitor(void* pvParameters) {
 #endif
 }
 
-void Puara::usb_monitor(void* pvParameters) {
+void PuaraImpl::usb_monitor(void* pvParameters) {
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
   // // Setup usb module for USB reads
   // const char *product_name = dmiName.c_str();
@@ -186,7 +187,7 @@ void Puara::usb_monitor(void* pvParameters) {
 #endif
 }
 
-bool Puara::start_serial_listening() {
+bool PuaraImpl::start_serial_listening() {
   // std::cout << "starting serial monitor \n";
   if (module_monitor == UART_MONITOR) {
     xTaskCreate(uart_monitor, "serial_monitor", 2048, NULL, 10, NULL);

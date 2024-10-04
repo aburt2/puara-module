@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Puara {
+namespace PuaraImpl {
 
 void reboot_with_delay(void* pvParameter);
 }

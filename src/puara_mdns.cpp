@@ -2,9 +2,9 @@
 
 #include <iostream>
 
-#include "puara.h"
+#include "puara_impl.hpp"
 
-void Puara::start_mdns_service(std::string_view device_name, std::string_view instance_name) {
+void PuaraImpl::start_mdns_service(std::string_view device_name, std::string_view instance_name) {
   // initialize mDNS service
   esp_err_t err = mdns_init();
   if (err) {

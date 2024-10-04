@@ -6,7 +6,7 @@
 #include <freertos/task.h>
 #include <string>
 
-namespace Puara {
+namespace PuaraImpl {
 inline const int wifi_connected_bit = BIT0;
 inline const int wifi_fail_bit = BIT1;
 inline EventGroupHandle_t s_wifi_event_group;
@@ -26,4 +26,4 @@ inline std::string currentAP_MAC;
 void sta_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 void wifi_init();
 
-}  // namespace Puara
+}  // namespace PuaraImpl

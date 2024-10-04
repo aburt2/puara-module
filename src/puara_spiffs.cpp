@@ -9,28 +9,28 @@
 #include <iomanip>
 #include <iostream>
 
-#include "puara.h"
+#include "puara_impl.hpp"
 #include "puara_config.hpp"
 
-namespace Puara {
+namespace PuaraImpl {
 esp_vfs_spiffs_conf_t spiffs_config;
 std::string spiffs_base_path;
 
 static const uint8_t spiffs_max_files = 10;
 static const bool spiffs_format_if_mount_failed = false;
 
-}  // namespace Puara
+}  // namespace PuaraImpl
 
-void Puara::config_spiffs() { spiffs_base_path = "/spiffs"; }
+void PuaraImpl::config_spiffs() { spiffs_base_path = "/spiffs"; }
 
-void Puara::mount_spiffs() {
+void PuaraImpl::mount_spiffs() {
   if (!esp_spiffs_mounted(spiffs_config.partition_label)) {
     std::cout << "spiffs: Initializing SPIFFS" << std::endl;
 
-    spiffs_config.base_path = Puara::spiffs_base_path.c_str();
-    spiffs_config.max_files = Puara::spiffs_max_files;
+    spiffs_config.base_path = PuaraImpl::spiffs_base_path.c_str();
+    spiffs_config.max_files = PuaraImpl::spiffs_max_files;
     spiffs_config.partition_label = NULL;
-    spiffs_config.format_if_mount_failed = Puara::spiffs_format_if_mount_failed;
+    spiffs_config.format_if_mount_failed = PuaraImpl::spiffs_format_if_mount_failed;
 
     // Use settings defined above to initialize and mount SPIFFS filesystem.
     // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
@@ -61,7 +61,7 @@ void Puara::mount_spiffs() {
   }
 }
 
-void Puara::unmount_spiffs() {
+void PuaraImpl::unmount_spiffs() {
   // All done, unmount partition and disable SPIFFS
   if (esp_spiffs_mounted(spiffs_config.partition_label)) {
     esp_vfs_spiffs_unregister(spiffs_config.partition_label);
@@ -74,18 +74,18 @@ void Puara::unmount_spiffs() {
 //// CONFIG ////
 
 // Can be improved
-double Puara::getVarNumber(std::string varName) {
+double PuaraImpl::getVarNumber(std::string varName) {
   return variables.at(variables_fields.at(varName)).numberValue;
 }
 
-std::string Puara::getVarText(std::string varName) {
+std::string PuaraImpl::getVarText(std::string varName) {
   return variables.at(variables_fields.at(varName)).textValue;
 }
 
-void Puara::read_config_json() {  // Deserialize
+void PuaraImpl::read_config_json() {  // Deserialize
 
   std::cout << "json: Mounting FS" << std::endl;
-  Puara::mount_spiffs();
+  PuaraImpl::mount_spiffs();
 
   std::cout << "json: Opening config json file" << std::endl;
   FILE* f = fopen("/spiffs/config.json", "r");
@@ -98,53 +98,53 @@ void Puara::read_config_json() {  // Deserialize
   std::ifstream in("/spiffs/config.json");
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-  Puara::read_config_json_internal(contents);
+  PuaraImpl::read_config_json_internal(contents);
 
   fclose(f);
-  Puara::unmount_spiffs();
+  PuaraImpl::unmount_spiffs();
 }
 
-void Puara::read_config_json_internal(std::string& contents) {
+void PuaraImpl::read_config_json_internal(std::string& contents) {
   std::cout << "json: Getting data" << std::endl;
   cJSON* root = cJSON_Parse(contents.c_str());
   if (cJSON_GetObjectItem(root, "device")) {
-    Puara::device = cJSON_GetObjectItem(root, "device")->valuestring;
+    PuaraImpl::device = cJSON_GetObjectItem(root, "device")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "id")) {
-    Puara::id = cJSON_GetObjectItem(root, "id")->valueint;
+    PuaraImpl::id = cJSON_GetObjectItem(root, "id")->valueint;
   }
   if (cJSON_GetObjectItem(root, "author")) {
-    Puara::author = cJSON_GetObjectItem(root, "author")->valuestring;
+    PuaraImpl::author = cJSON_GetObjectItem(root, "author")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "institution")) {
-    Puara::institution = cJSON_GetObjectItem(root, "institution")->valuestring;
+    PuaraImpl::institution = cJSON_GetObjectItem(root, "institution")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "APpasswd")) {
-    Puara::APpasswd = cJSON_GetObjectItem(root, "APpasswd")->valuestring;
+    PuaraImpl::APpasswd = cJSON_GetObjectItem(root, "APpasswd")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "wifiSSID")) {
-    Puara::wifiSSID = cJSON_GetObjectItem(root, "wifiSSID")->valuestring;
+    PuaraImpl::wifiSSID = cJSON_GetObjectItem(root, "wifiSSID")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "wifiPSK")) {
-    Puara::wifiPSK = cJSON_GetObjectItem(root, "wifiPSK")->valuestring;
+    PuaraImpl::wifiPSK = cJSON_GetObjectItem(root, "wifiPSK")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "persistentAP")) {
-    Puara::persistentAP = cJSON_GetObjectItem(root, "persistentAP")->valueint;
+    PuaraImpl::persistentAP = cJSON_GetObjectItem(root, "persistentAP")->valueint;
   }
   if (cJSON_GetObjectItem(root, "oscIP1")) {
-    Puara::oscIP1 = cJSON_GetObjectItem(root, "oscIP1")->valuestring;
+    PuaraImpl::oscIP1 = cJSON_GetObjectItem(root, "oscIP1")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "oscPORT1")) {
-    Puara::oscPORT1 = cJSON_GetObjectItem(root, "oscPORT1")->valueint;
+    PuaraImpl::oscPORT1 = cJSON_GetObjectItem(root, "oscPORT1")->valueint;
   }
   if (cJSON_GetObjectItem(root, "oscIP2")) {
-    Puara::oscIP2 = cJSON_GetObjectItem(root, "oscIP2")->valuestring;
+    PuaraImpl::oscIP2 = cJSON_GetObjectItem(root, "oscIP2")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "oscPORT2")) {
-    Puara::oscPORT2 = cJSON_GetObjectItem(root, "oscPORT2")->valueint;
+    PuaraImpl::oscPORT2 = cJSON_GetObjectItem(root, "oscPORT2")->valueint;
   }
   if (cJSON_GetObjectItem(root, "localPORT")) {
-    Puara::localPORT = cJSON_GetObjectItem(root, "localPORT")->valueint;
+    PuaraImpl::localPORT = cJSON_GetObjectItem(root, "localPORT")->valueint;
   }
 
   std::cout << "\njson: Data collected:\n\n"
@@ -166,14 +166,14 @@ void Puara::read_config_json_internal(std::string& contents) {
   cJSON_Delete(root);
 
   std::stringstream tempBuf;
-  tempBuf << Puara::device << "_" << std::setfill('0') << std::setw(3) << Puara::id;
-  Puara::dmiName = tempBuf.str();
+  tempBuf << PuaraImpl::device << "_" << std::setfill('0') << std::setw(3) << PuaraImpl::id;
+  PuaraImpl::dmiName = tempBuf.str();
   printf("Device unique name defined: %s\n", dmiName.c_str());
 }
 
-void Puara::read_settings_json() {
+void PuaraImpl::read_settings_json() {
   std::cout << "json: Mounting FS" << std::endl;
-  Puara::mount_spiffs();
+  PuaraImpl::mount_spiffs();
 
   std::cout << "json: Opening settings json file" << std::endl;
   FILE* f = fopen("/spiffs/settings.json", "r");
@@ -186,12 +186,12 @@ void Puara::read_settings_json() {
   std::ifstream in("/spiffs/settings.json");
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-  Puara::read_settings_json_internal(contents);
+  PuaraImpl::read_settings_json_internal(contents);
   fclose(f);
-  Puara::unmount_spiffs();
+  PuaraImpl::unmount_spiffs();
 }
 
-void Puara::read_settings_json_internal(std::string& contents, bool merge) {
+void PuaraImpl::read_settings_json_internal(std::string& contents, bool merge) {
   std::cout << "json: Getting data" << std::endl;
   cJSON* root = cJSON_Parse(contents.c_str());
   cJSON* setting = NULL;
@@ -242,9 +242,9 @@ void Puara::read_settings_json_internal(std::string& contents, bool merge) {
   cJSON_Delete(root);
 }
 
-void Puara::write_config_json() {
+void PuaraImpl::write_config_json() {
   std::cout << "SPIFFS: Mounting FS" << std::endl;
-  Puara::mount_spiffs();
+  PuaraImpl::mount_spiffs();
 
   std::cout << "SPIFFS: Opening config.json file" << std::endl;
   FILE* f = fopen("/spiffs/config.json", "w");
@@ -336,12 +336,12 @@ void Puara::write_config_json() {
   cJSON_Delete(root);
 
   std::cout << "SPIFFS: umounting FS" << std::endl;
-  Puara::unmount_spiffs();
+  PuaraImpl::unmount_spiffs();
 }
 
-void Puara::write_settings_json() {
+void PuaraImpl::write_settings_json() {
   std::cout << "SPIFFS: Mounting FS" << std::endl;
-  Puara::mount_spiffs();
+  PuaraImpl::mount_spiffs();
 
   std::cout << "SPIFFS: Opening settings.json file" << std::endl;
   FILE* f = fopen("/spiffs/settings.json", "w");
@@ -381,5 +381,5 @@ void Puara::write_settings_json() {
   cJSON_Delete(root);
 
   std::cout << "SPIFFS: umounting FS" << std::endl;
-  Puara::unmount_spiffs();
+  PuaraImpl::unmount_spiffs();
 }

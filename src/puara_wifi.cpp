@@ -5,18 +5,19 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <cstring>
 
-#include "puara.h"
+#include "puara_impl.hpp"
 #include "puara_config.hpp"
 
-namespace Puara {
+namespace PuaraImpl {
 static const short int channel = 6;
 static const short int max_connection = 5;
 static const short int wifi_maximum_retry = 5;
 static const int wifiScanSize = 20;
-}  // namespace Puara
+}  // namespace PuaraImpl
 
-void Puara::wifi_init() {
+void PuaraImpl::wifi_init() {
   s_wifi_event_group = xEventGroupCreate();
 
   ESP_ERROR_CHECK(esp_netif_init());
@@ -40,9 +41,9 @@ void Puara::wifi_init() {
   esp_event_handler_instance_t instance_any_id;
   esp_event_handler_instance_t instance_got_ip;
   ESP_ERROR_CHECK(esp_event_handler_instance_register(
-      WIFI_EVENT, ESP_EVENT_ANY_ID, &Puara::sta_event_handler, NULL, &instance_any_id));
+      WIFI_EVENT, ESP_EVENT_ANY_ID, &PuaraImpl::sta_event_handler, NULL, &instance_any_id));
   ESP_ERROR_CHECK(esp_event_handler_instance_register(
-      IP_EVENT, IP_EVENT_STA_GOT_IP, &Puara::sta_event_handler, NULL, &instance_got_ip));
+      IP_EVENT, IP_EVENT_STA_GOT_IP, &PuaraImpl::sta_event_handler, NULL, &instance_got_ip));
 
   std::cout << "wifi_init: setting wifi mode" << std::endl;
   if (persistentAP) {
@@ -61,25 +62,25 @@ void Puara::wifi_init() {
 
   std::cout << "wifi_init: wifi_init finished." << std::endl;
 
-  /* Waiting until either the connection is established (Puara::wifi_connected_bit)
-   * or connection failed for the maximum number of re-tries (Puara::wifi_fail_bit).
+  /* Waiting until either the connection is established (PuaraImpl::wifi_connected_bit)
+   * or connection failed for the maximum number of re-tries (PuaraImpl::wifi_fail_bit).
    * The bits are set by event_handler() (see above) */
   EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
-                                         Puara::wifi_connected_bit | Puara::wifi_fail_bit,
+                                         PuaraImpl::wifi_connected_bit | PuaraImpl::wifi_fail_bit,
                                          pdFALSE,
                                          pdFALSE,
                                          portMAX_DELAY);
 
   /* xEventGroupWaitBits() returns the bits before the call returned, hence we
    * can test which event actually happened. */
-  if (bits & Puara::wifi_connected_bit) {
-    std::cout << "wifi_init: Connected to SSID: " << Puara::wifiSSID << std::endl;
+  if (bits & PuaraImpl::wifi_connected_bit) {
+    std::cout << "wifi_init: Connected to SSID: " << PuaraImpl::wifiSSID << std::endl;
     currentSSID = wifiSSID;
-    Puara::StaIsConnected = true;
-  } else if (bits & Puara::wifi_fail_bit) {
-    std::cout << "wifi_init: Failed to connect to SSID: " << Puara::wifiSSID << std::endl;
+    PuaraImpl::StaIsConnected = true;
+  } else if (bits & PuaraImpl::wifi_fail_bit) {
+    std::cout << "wifi_init: Failed to connect to SSID: " << PuaraImpl::wifiSSID << std::endl;
     if (!persistentAP) {
-      std::cout << "wifi_init: Failed to connect to SSID: " << Puara::wifiSSID
+      std::cout << "wifi_init: Failed to connect to SSID: " << PuaraImpl::wifiSSID
                 << "Switching to AP/STA mode" << std::endl;
       ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
       std::cout << "wifi_init: loading AP config" << std::endl;
@@ -88,7 +89,7 @@ void Puara::wifi_init() {
                 << std::endl;
       ESP_ERROR_CHECK(esp_wifi_start());
     } else {
-      Puara::StaIsConnected = false;
+      PuaraImpl::StaIsConnected = false;
     }
   } else {
     std::cout << "wifi_init: UNEXPECTED EVENT" << std::endl;
@@ -111,7 +112,7 @@ void Puara::wifi_init() {
   tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[3] << ":";
   tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[4] << ":";
   tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[5];
-  Puara::currentSTA_MAC = tempBuf.str();
+  PuaraImpl::currentSTA_MAC = tempBuf.str();
   tempBuf.clear();             // preparing the ostringstream
   tempBuf.str(std::string());  // buffer for reuse
   esp_wifi_get_mac(WIFI_IF_AP, temp_info);
@@ -121,7 +122,7 @@ void Puara::wifi_init() {
   tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[3] << ":";
   tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[4] << ":";
   tempBuf << std::setfill('0') << std::setw(2) << std::hex << (int)temp_info[5];
-  Puara::currentAP_MAC = tempBuf.str();
+  PuaraImpl::currentAP_MAC = tempBuf.str();
 
   esp_netif_ip_info_t ip_temp_info;
   esp_netif_get_ip_info(ap_netif, &ip_temp_info);
@@ -131,10 +132,10 @@ void Puara::wifi_init() {
   tempBuf << std::dec << esp_ip4_addr2_16(&ip_temp_info.ip) << ".";
   tempBuf << std::dec << esp_ip4_addr3_16(&ip_temp_info.ip) << ".";
   tempBuf << std::dec << esp_ip4_addr4_16(&ip_temp_info.ip);
-  Puara::currentAP_IP = tempBuf.str();
+  PuaraImpl::currentAP_IP = tempBuf.str();
 }
 
-void Puara::wifi_scan(void) {
+void PuaraImpl::wifi_scan(void) {
   uint16_t number = wifiScanSize;
   wifi_ap_record_t ap_info[wifiScanSize];
   uint16_t ap_count = 0;
@@ -156,7 +157,7 @@ void Puara::wifi_scan(void) {
   }
 }
 
-void Puara::start_wifi() {
+void PuaraImpl::start_wifi() {
   ApStarted = false;
 
   // Check if wifiSSID is empty and wifiPSK have less than 8 characteres
@@ -178,21 +179,21 @@ void Puara::start_wifi() {
     wifiSSID = "Puara";
   }
 
-  strncpy((char*)Puara::wifi_config_sta.sta.ssid,
-          Puara::wifiSSID.c_str(),
-          Puara::wifiSSID.length() + 1);
-  strncpy((char*)Puara::wifi_config_sta.sta.password,
-          Puara::wifiPSK.c_str(),
-          Puara::wifiPSK.length() + 1);
+  strncpy((char*)PuaraImpl::wifi_config_sta.sta.ssid,
+          PuaraImpl::wifiSSID.c_str(),
+          PuaraImpl::wifiSSID.length() + 1);
+  strncpy((char*)PuaraImpl::wifi_config_sta.sta.password,
+          PuaraImpl::wifiPSK.c_str(),
+          PuaraImpl::wifiPSK.length() + 1);
   strncpy(
-      (char*)Puara::wifi_config_ap.ap.ssid, Puara::dmiName.c_str(), Puara::dmiName.length() + 1);
-  Puara::wifi_config_ap.ap.ssid_len = Puara::dmiName.length();
-  Puara::wifi_config_ap.ap.channel = Puara::channel;
-  strncpy((char*)Puara::wifi_config_ap.ap.password,
-          Puara::APpasswd.c_str(),
-          Puara::APpasswd.length() + 1);
-  Puara::wifi_config_ap.ap.max_connection = Puara::max_connection;
-  Puara::wifi_config_ap.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+      (char*)PuaraImpl::wifi_config_ap.ap.ssid, PuaraImpl::dmiName.c_str(), PuaraImpl::dmiName.length() + 1);
+  PuaraImpl::wifi_config_ap.ap.ssid_len = PuaraImpl::dmiName.length();
+  PuaraImpl::wifi_config_ap.ap.channel = PuaraImpl::channel;
+  strncpy((char*)PuaraImpl::wifi_config_ap.ap.password,
+          PuaraImpl::APpasswd.c_str(),
+          PuaraImpl::APpasswd.length() + 1);
+  PuaraImpl::wifi_config_ap.ap.max_connection = PuaraImpl::max_connection;
+  PuaraImpl::wifi_config_ap.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
 
   // Initialize NVS
   esp_err_t ret = nvs_flash_init();
@@ -203,12 +204,12 @@ void Puara::start_wifi() {
   ESP_ERROR_CHECK(ret);
 
   std::cout << "startWifi: Starting WiFi config" << std::endl;
-  Puara::connect_counter = 0;
+  PuaraImpl::connect_counter = 0;
   wifi_init();
   ApStarted = true;
 }
 
-void Puara::sta_event_handler(void* arg,
+void PuaraImpl::sta_event_handler(void* arg,
                               esp_event_base_t event_base,
                               int32_t event_id,
                               void* event_data) {
@@ -216,13 +217,13 @@ void Puara::sta_event_handler(void* arg,
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
     esp_wifi_connect();
   } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-    printf("%d, %d", Puara::connect_counter, Puara::wifi_maximum_retry);
-    if (Puara::connect_counter < Puara::wifi_maximum_retry) {
-      Puara::connect_counter++;
+    printf("%d, %d", PuaraImpl::connect_counter, PuaraImpl::wifi_maximum_retry);
+    if (PuaraImpl::connect_counter < PuaraImpl::wifi_maximum_retry) {
+      PuaraImpl::connect_counter++;
       esp_wifi_connect();
       std::cout << "wifi/sta_event_handler: retry to connect to the AP" << std::endl;
     } else {
-      xEventGroupSetBits(s_wifi_event_group, Puara::wifi_fail_bit);
+      xEventGroupSetBits(s_wifi_event_group, PuaraImpl::wifi_fail_bit);
     }
     std::cout << "wifi/sta_event_handler: connect to the AP fail" << std::endl;
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
@@ -233,11 +234,11 @@ void Puara::sta_event_handler(void* arg,
     tempBuf << esp_ip4_addr2_16(&event->ip_info.ip) << ".";
     tempBuf << esp_ip4_addr3_16(&event->ip_info.ip) << ".";
     tempBuf << esp_ip4_addr4_16(&event->ip_info.ip);
-    Puara::currentSTA_IP = tempBuf.str();
-    std::cout << "wifi/sta_event_handler: got ip:" << Puara::currentSTA_IP << std::endl;
-    Puara::connect_counter = 0;
-    xEventGroupSetBits(s_wifi_event_group, Puara::wifi_connected_bit);
+    PuaraImpl::currentSTA_IP = tempBuf.str();
+    std::cout << "wifi/sta_event_handler: got ip:" << PuaraImpl::currentSTA_IP << std::endl;
+    PuaraImpl::connect_counter = 0;
+    xEventGroupSetBits(s_wifi_event_group, PuaraImpl::wifi_connected_bit);
   }
 }
 
-bool Puara::get_StaIsConnected() { return StaIsConnected; }
+bool PuaraImpl::get_StaIsConnected() { return StaIsConnected; }
