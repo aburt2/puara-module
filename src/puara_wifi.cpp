@@ -1,19 +1,20 @@
+#include "puara_wifi.hpp"
+
+#include <nvs_flash.h>
+
+#include <algorithm>
+#include <iomanip>
+#include <iostream>
+
 #include "puara.h"
+#include "puara_config.hpp"
 
-bool Puara::StaIsConnected = false;
-bool Puara::ApStarted = false;
-
-std::string Puara::currentSSID;
-std::string Puara::currentSTA_IP;
-std::string Puara::currentSTA_MAC;
-std::string Puara::currentAP_IP;
-std::string Puara::currentAP_MAC;
-
-EventGroupHandle_t Puara::s_wifi_event_group;
-wifi_config_t Puara::wifi_config_sta;
-wifi_config_t Puara::wifi_config_ap;
-
-short int Puara::connect_counter;
+namespace Puara {
+static const short int channel = 6;
+static const short int max_connection = 5;
+static const short int wifi_maximum_retry = 5;
+static const int wifiScanSize = 20;
+}  // namespace Puara
 
 void Puara::wifi_init() {
   s_wifi_event_group = xEventGroupCreate();
@@ -133,7 +134,6 @@ void Puara::wifi_init() {
   Puara::currentAP_IP = tempBuf.str();
 }
 
-
 void Puara::wifi_scan(void) {
   uint16_t number = wifiScanSize;
   wifi_ap_record_t ap_info[wifiScanSize];
@@ -155,7 +155,6 @@ void Puara::wifi_scan(void) {
     wifiAvailableSsid.append(")<br>");
   }
 }
-
 
 void Puara::start_wifi() {
   ApStarted = false;
@@ -208,7 +207,6 @@ void Puara::start_wifi() {
   wifi_init();
   ApStarted = true;
 }
-
 
 void Puara::sta_event_handler(void* arg,
                               esp_event_base_t event_base,

@@ -1,9 +1,25 @@
-#include "puara.h"
+#include "puara_spiffs.hpp"
 
 #include <cJSON.h>
+#include <esp_err.h>
+#include <esp_spi_flash.h>
+#include <esp_spiffs.h>
 
-esp_vfs_spiffs_conf_t Puara::spiffs_config;
-std::string Puara::spiffs_base_path;
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+
+#include "puara.h"
+#include "puara_config.hpp"
+
+namespace Puara {
+esp_vfs_spiffs_conf_t spiffs_config;
+std::string spiffs_base_path;
+
+static const uint8_t spiffs_max_files = 10;
+static const bool spiffs_format_if_mount_failed = false;
+
+}  // namespace Puara
 
 void Puara::config_spiffs() { spiffs_base_path = "/spiffs"; }
 
@@ -55,11 +71,8 @@ void Puara::unmount_spiffs() {
   }
 }
 
-
 //// CONFIG ////
 
-std::vector<Puara::settingsVariables> Puara::variables;
-std::unordered_map<std::string, int> Puara::variables_fields;
 // Can be improved
 double Puara::getVarNumber(std::string varName) {
   return variables.at(variables_fields.at(varName)).numberValue;
@@ -157,7 +170,6 @@ void Puara::read_config_json_internal(std::string& contents) {
   Puara::dmiName = tempBuf.str();
   printf("Device unique name defined: %s\n", dmiName.c_str());
 }
-
 
 void Puara::read_settings_json() {
   std::cout << "json: Mounting FS" << std::endl;

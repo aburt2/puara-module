@@ -14,6 +14,11 @@ Edu Meneses (2022) - https://www.edumeneses.com
 
 #include <puara.h>
 
+#include <iostream>
+
+#include "puara_config.hpp"
+#include "puara_serial.hpp"
+
 // Defining static members
 void Puara::start(Monitors monitor) {
   std::cout << "\n"
@@ -47,4 +52,3 @@ void Puara::start(Monitors monitor) {
   std::cout
       << "Puara Start Done!\n\n  Type \"reboot\" in the serial monitor to reset the ESP32.\n\n";
 }
-

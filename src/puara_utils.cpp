@@ -1,3 +1,7 @@
+#include "puara_utils.hpp"
+
+#include <iostream>
+
 #include "puara.h"
 
 void Puara::find_and_replace(std::string old_text, std::string new_text, std::string& str) {
@@ -49,7 +53,6 @@ std::string Puara::convertToString(char* a) {
   std::string s(a);
   return s;
 }
-
 
 std::string Puara::urlDecode(std::string text) {
   std::string escaped;

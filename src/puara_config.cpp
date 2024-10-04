@@ -1,21 +1,6 @@
-#include "puara.h"
+#include "puara_config.hpp"
 
-unsigned int Puara::version = 20220906;
-std::string Puara::dmiName;
-std::string Puara::device;
-unsigned int Puara::id;
-std::string Puara::author;
-std::string Puara::institution;
-std::string Puara::APpasswd;
-std::string Puara::wifiSSID;
-std::string Puara::wifiPSK;
-bool Puara::persistentAP = false;
-std::string Puara::oscIP1;
-unsigned int Puara::oscPORT1;
-std::string Puara::oscIP2;
-unsigned int Puara::oscPORT2;
-unsigned int Puara::localPORT;
-std::string Puara::wifiAvailableSsid;
+#include "puara.h"
 
 unsigned int Puara::get_version() { return version; };
 
@@ -46,7 +31,6 @@ bool Puara::IP1_ready() {
     return true;
   }
 }
-
 
 bool Puara::IP2_ready() {
   if ((oscIP2 == "0.0.0.0") || (oscIP2 == "")) {

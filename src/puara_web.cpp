@@ -1,36 +1,48 @@
-#include "puara.h"
+#include "puara_web.hpp"
 
 #include <esp_http_server.h>
 
-httpd_uri_t Puara::reboot;
-httpd_uri_t Puara::index;
-httpd_uri_t Puara::style;
-// httpd_uri_t Puara::factory;
-httpd_uri_t Puara::scan;
-// httpd_uri_t Puara::update;
-httpd_uri_t Puara::indexpost;
-httpd_uri_t Puara::settings;
-httpd_uri_t Puara::settingspost;
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <istream>
 
-std::string Puara::APpasswdVal1;
-std::string Puara::APpasswdVal2;
+#include "puara.h"
+#include "puara_config.hpp"
+#include "puara_device.hpp"
+#include "puara_spiffs.hpp"
+#include "puara_utils.hpp"
+#include "puara_wifi.hpp"
 
-httpd_handle_t Puara::webserver;
-httpd_config_t Puara::webserver_config;
+namespace Puara {
+httpd_uri_t reboot;
+httpd_uri_t index;
+httpd_uri_t style;
+// httpd_uri_t factory;
+httpd_uri_t scan;
+// httpd_uri_t update;
+httpd_uri_t indexpost;
+httpd_uri_t settings;
+httpd_uri_t settingspost;
 
-std::unordered_map<std::string, int> Puara::config_fields = {{"SSID", 1},
-                                                             {"APpasswd", 2},
-                                                             {"APpasswdValidate", 3},
-                                                             {"oscIP1", 4},
-                                                             {"oscPORT1", 5},
-                                                             {"oscIP2", 6},
-                                                             {"oscPORT2", 7},
-                                                             {"password", 8},
-                                                             {"reboot", 9},
-                                                             {"persistentAP", 10},
-                                                             {"localPORT", 11}};
+std::string APpasswdVal1;
+std::string APpasswdVal2;
 
+httpd_handle_t webserver;
+httpd_config_t webserver_config;
+std::unordered_map<std::string, int> config_fields = {{"SSID", 1},
+                                                      {"APpasswd", 2},
+                                                      {"APpasswdValidate", 3},
+                                                      {"oscIP1", 4},
+                                                      {"oscPORT1", 5},
+                                                      {"oscIP2", 6},
+                                                      {"oscPORT2", 7},
+                                                      {"password", 8},
+                                                      {"reboot", 9},
+                                                      {"persistentAP", 10},
+                                                      {"localPORT", 11}};
 
+}  // namespace Puara
 httpd_handle_t Puara::start_webserver(void) {
   if (!ApStarted) {
     std::cout << "start_webserver: Cannot start webserver: AP and STA not initializated"
@@ -123,7 +135,6 @@ void Puara::stop_webserver(void) {
   httpd_stop(webserver);
 }
 
-
 std::string Puara::prepare_index() {
   Puara::mount_spiffs();
   std::cout << "http (spiffs): Reading index file" << std::endl;
@@ -212,7 +223,7 @@ esp_err_t Puara::settings_post_handler(httpd_req_t* req) {
 
   while (remaining > 0) {
     /* Read the data for the request */
-    if ((api_return = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)))) <= 0) {
+    if ((api_return = httpd_req_recv(req, buf, std::min(remaining, (int)sizeof(buf)))) <= 0) {
       if (api_return == HTTPD_SOCK_ERR_TIMEOUT) {
         /* Retry receiving if timeout occurred */
         continue;
@@ -325,7 +336,7 @@ esp_err_t Puara::index_post_handler(httpd_req_t* req) {
 
   while (remaining > 0) {
     /* Read the data for the request */
-    if ((api_return = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)))) <= 0) {
+    if ((api_return = httpd_req_recv(req, buf, std::min(remaining, (int)sizeof(buf)))) <= 0) {
       if (api_return == HTTPD_SOCK_ERR_TIMEOUT) {
         /* Retry receiving if timeout occurred */
         continue;

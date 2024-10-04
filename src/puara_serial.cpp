@@ -1,6 +1,12 @@
-#include "puara.h"
+#include "puara_serial.hpp"
 
 #include <driver/uart.h>
+
+#include "puara.h"
+#include "puara_config.hpp"
+#include "puara_device.hpp"
+#include "puara_spiffs.hpp"
+#include "puara_utils.hpp"
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
 #include <driver/usb_serial_jtag.h>  // jtag module
 #endif
@@ -9,15 +15,22 @@
 #include "esp32-hal-tinyusb.h"
 #endif
 
-char Puara::serial_data[PUARA_SERIAL_BUFSIZE];
-int Puara::serial_data_length;
-std::string Puara::serial_data_str;
-std::string Puara::serial_data_str_buffer;
-int Puara::module_monitor = UART_MONITOR;
+#define PUARA_SERIAL_BUFSIZE 1024
+
+#include <fstream>
+#include <iostream>
+#include <istream>
+
+namespace Puara {
+char serial_data[PUARA_SERIAL_BUFSIZE];
+int serial_data_length;
+std::string serial_data_str;
+std::string serial_data_str_buffer;
 
 // FIXME: refactor into std::string_view
-const std::string Puara::data_start = "<<<";
-const std::string Puara::data_end = ">>>";
+const std::string data_start = "<<<";
+const std::string data_end = ">>>";
+}  // namespace Puara
 
 void Puara::send_serial_data(std::string data) {
   std::cout << Puara::data_start << data << Puara::data_end << std::endl;
