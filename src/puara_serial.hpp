@@ -3,13 +3,15 @@
 
 #define PUARA_SERIAL_BUFSIZE 1024
 
-namespace PuaraAPI {
+namespace PuaraAPI
+{
 struct DeviceConfiguration;
 struct Device;
 struct SPIFFS;
 struct JSONSettings;
 
-struct Serial {
+struct Serial
+{
   DeviceConfiguration& config;
   Device& device;
   SPIFFS& spiffs;
@@ -33,4 +35,4 @@ struct Serial {
   std::string serial_data_str;
   std::string serial_data_str_buffer;
 };
-}  // namespace PuaraAPI
+} 

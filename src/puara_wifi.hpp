@@ -1,16 +1,19 @@
 #pragma once
 
-#include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <freertos/task.h>
 
+#include <esp_wifi.h>
+
 #include <string>
 
-namespace PuaraAPI {
+namespace PuaraAPI
+{
 struct DeviceConfiguration;
 
-struct WiFi {
+struct WiFi
+{
   DeviceConfiguration& config;
 
   // Public API
@@ -31,10 +34,8 @@ struct WiFi {
   std::string wifiAvailableSsid;
 
   // Internal API
-  static void sta_event_handler(void* arg,
-                                esp_event_base_t event_base,
-                                int32_t event_id,
-                                void* event_data);
+  static void sta_event_handler(
+      void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
   void wifi_init();
 
   const int wifi_connected_bit = BIT0;
@@ -45,4 +46,4 @@ struct WiFi {
   wifi_config_t wifi_config_ap;
   short int connect_counter;
 };
-}  // namespace PuaraAPI
+} 

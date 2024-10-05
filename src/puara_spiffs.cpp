@@ -1,22 +1,28 @@
 #include "puara_spiffs.hpp"
 
+#include "puara_config.hpp"
+
 #include <cJSON.h>
 
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 
-#include "puara_config.hpp"
-
-namespace PuaraAPI {
+namespace PuaraAPI
+{
 
 static constexpr uint8_t spiffs_max_files = 10;
 static constexpr bool spiffs_format_if_mount_failed = false;
 
-void SPIFFS::config_spiffs() { spiffs_base_path = "/spiffs"; }
+void SPIFFS::config_spiffs()
+{
+  spiffs_base_path = "/spiffs";
+}
 
-void SPIFFS::mount_spiffs() {
-  if (!esp_spiffs_mounted(spiffs_config.partition_label)) {
+void SPIFFS::mount_spiffs()
+{
+  if(!esp_spiffs_mounted(spiffs_config.partition_label))
+  {
     std::cout << "spiffs: Initializing SPIFFS" << std::endl;
 
     spiffs_config.base_path = this->spiffs_base_path.c_str();
@@ -28,37 +34,53 @@ void SPIFFS::mount_spiffs() {
     // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
     esp_err_t ret = esp_vfs_spiffs_register(&spiffs_config);
 
-    if (ret != ESP_OK) {
-      if (ret == ESP_FAIL) {
+    if(ret != ESP_OK)
+    {
+      if(ret == ESP_FAIL)
+      {
         std::cout << "spiffs: Failed to mount or format filesystem" << std::endl;
-      } else if (ret == ESP_ERR_NOT_FOUND) {
+      }
+      else if(ret == ESP_ERR_NOT_FOUND)
+      {
         std::cout << "spiffs: Failed to find SPIFFS partition" << std::endl;
-      } else {
-        std::cout << "spiffs: Failed to initialize SPIFFS (" << esp_err_to_name(ret) << ")"
-                  << std::endl;
+      }
+      else
+      {
+        std::cout << "spiffs: Failed to initialize SPIFFS (" << esp_err_to_name(ret)
+                  << ")" << std::endl;
       }
       return;
     }
 
     size_t total = 0, used = 0;
     ret = esp_spiffs_info(spiffs_config.partition_label, &total, &used);
-    if (ret != ESP_OK) {
-      std::cout << "spiffs: Failed to get SPIFFS partition information (" << esp_err_to_name(ret)
-                << ")" << std::endl;
-    } else {
-      std::cout << "spiffs: Partition size: total: " << total << ", used: " << used << std::endl;
+    if(ret != ESP_OK)
+    {
+      std::cout << "spiffs: Failed to get SPIFFS partition information ("
+                << esp_err_to_name(ret) << ")" << std::endl;
     }
-  } else {
+    else
+    {
+      std::cout << "spiffs: Partition size: total: " << total << ", used: " << used
+                << std::endl;
+    }
+  }
+  else
+  {
     std::cout << "spiffs: SPIFFS already initialized" << std::endl;
   }
 }
 
-void SPIFFS::unmount_spiffs() {
+void SPIFFS::unmount_spiffs()
+{
   // All done, unmount partition and disable SPIFFS
-  if (esp_spiffs_mounted(spiffs_config.partition_label)) {
+  if(esp_spiffs_mounted(spiffs_config.partition_label))
+  {
     esp_vfs_spiffs_unregister(spiffs_config.partition_label);
     std::cout << "spiffs: SPIFFS unmounted" << std::endl;
-  } else {
+  }
+  else
+  {
     std::cout << "spiffs: SPIFFS not found" << std::endl;
   }
 }
@@ -66,29 +88,34 @@ void SPIFFS::unmount_spiffs() {
 //// CONFIG ////
 
 // Can be improved
-double JSONSettings::getVarNumber(std::string varName) {
+double JSONSettings::getVarNumber(std::string varName)
+{
   return variables.at(variables_fields.at(varName)).numberValue;
 }
 
-std::string JSONSettings::getVarText(std::string varName) {
+std::string JSONSettings::getVarText(std::string varName)
+{
   return variables.at(variables_fields.at(varName)).textValue;
 }
 
-void JSONSettings::read_config_json() {  // Deserialize
+void JSONSettings::read_config_json()
+{ // Deserialize
 
   std::cout << "json: Mounting FS" << std::endl;
   spiffs.mount_spiffs();
 
   std::cout << "json: Opening config json file" << std::endl;
   FILE* f = fopen("/spiffs/config.json", "r");
-  if (f == NULL) {
+  if(f == NULL)
+  {
     std::cout << "json: Failed to open file" << std::endl;
     return;
   }
 
   std::cout << "json: Reading json file" << std::endl;
   std::ifstream in("/spiffs/config.json");
-  std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  std::string contents(
+      (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
   read_config_json_internal(contents);
 
@@ -96,46 +123,60 @@ void JSONSettings::read_config_json() {  // Deserialize
   spiffs.unmount_spiffs();
 }
 
-void JSONSettings::read_config_json_internal(std::string& contents) {
+void JSONSettings::read_config_json_internal(std::string& contents)
+{
   std::cout << "json: Getting data" << std::endl;
   cJSON* root = cJSON_Parse(contents.c_str());
-  if (cJSON_GetObjectItem(root, "device")) {
+  if(cJSON_GetObjectItem(root, "device"))
+  {
     config.device = cJSON_GetObjectItem(root, "device")->valuestring;
   }
-  if (cJSON_GetObjectItem(root, "id")) {
+  if(cJSON_GetObjectItem(root, "id"))
+  {
     config.id = cJSON_GetObjectItem(root, "id")->valueint;
   }
-  if (cJSON_GetObjectItem(root, "author")) {
+  if(cJSON_GetObjectItem(root, "author"))
+  {
     config.author = cJSON_GetObjectItem(root, "author")->valuestring;
   }
-  if (cJSON_GetObjectItem(root, "institution")) {
+  if(cJSON_GetObjectItem(root, "institution"))
+  {
     config.institution = cJSON_GetObjectItem(root, "institution")->valuestring;
   }
-  if (cJSON_GetObjectItem(root, "APpasswd")) {
+  if(cJSON_GetObjectItem(root, "APpasswd"))
+  {
     config.APpasswd = cJSON_GetObjectItem(root, "APpasswd")->valuestring;
   }
-  if (cJSON_GetObjectItem(root, "wifiSSID")) {
+  if(cJSON_GetObjectItem(root, "wifiSSID"))
+  {
     config.wifiSSID = cJSON_GetObjectItem(root, "wifiSSID")->valuestring;
   }
-  if (cJSON_GetObjectItem(root, "wifiPSK")) {
+  if(cJSON_GetObjectItem(root, "wifiPSK"))
+  {
     config.wifiPSK = cJSON_GetObjectItem(root, "wifiPSK")->valuestring;
   }
-  if (cJSON_GetObjectItem(root, "persistentAP")) {
+  if(cJSON_GetObjectItem(root, "persistentAP"))
+  {
     config.persistentAP = cJSON_GetObjectItem(root, "persistentAP")->valueint;
   }
-  if (cJSON_GetObjectItem(root, "oscIP1")) {
+  if(cJSON_GetObjectItem(root, "oscIP1"))
+  {
     config.oscIP1 = cJSON_GetObjectItem(root, "oscIP1")->valuestring;
   }
-  if (cJSON_GetObjectItem(root, "oscPORT1")) {
+  if(cJSON_GetObjectItem(root, "oscPORT1"))
+  {
     config.oscPORT1 = cJSON_GetObjectItem(root, "oscPORT1")->valueint;
   }
-  if (cJSON_GetObjectItem(root, "oscIP2")) {
+  if(cJSON_GetObjectItem(root, "oscIP2"))
+  {
     config.oscIP2 = cJSON_GetObjectItem(root, "oscIP2")->valuestring;
   }
-  if (cJSON_GetObjectItem(root, "oscPORT2")) {
+  if(cJSON_GetObjectItem(root, "oscPORT2"))
+  {
     config.oscPORT2 = cJSON_GetObjectItem(root, "oscPORT2")->valueint;
   }
-  if (cJSON_GetObjectItem(root, "localPORT")) {
+  if(cJSON_GetObjectItem(root, "localPORT"))
+  {
     config.localPORT = cJSON_GetObjectItem(root, "localPORT")->valueint;
   }
 
@@ -163,27 +204,31 @@ void JSONSettings::read_config_json_internal(std::string& contents) {
   printf("Device unique name defined: %s\n", config.dmiName.c_str());
 }
 
-void JSONSettings::read_settings_json() {
+void JSONSettings::read_settings_json()
+{
   std::cout << "json: Mounting FS" << std::endl;
   spiffs.mount_spiffs();
 
   std::cout << "json: Opening settings json file" << std::endl;
   FILE* f = fopen("/spiffs/settings.json", "r");
-  if (f == NULL) {
+  if(f == NULL)
+  {
     std::cout << "json: Failed to open file" << std::endl;
     return;
   }
 
   std::cout << "json: Reading json file" << std::endl;
   std::ifstream in("/spiffs/settings.json");
-  std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  std::string contents(
+      (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
   read_settings_json_internal(contents);
   fclose(f);
   spiffs.unmount_spiffs();
 }
 
-void JSONSettings::read_settings_json_internal(std::string& contents, bool merge) {
+void JSONSettings::read_settings_json_internal(std::string& contents, bool merge)
+{
   std::cout << "json: Getting data" << std::endl;
   cJSON* root = cJSON_Parse(contents.c_str());
   cJSON* setting = NULL;
@@ -193,27 +238,35 @@ void JSONSettings::read_settings_json_internal(std::string& contents, bool merge
   settings = cJSON_GetObjectItemCaseSensitive(root, "settings");
 
   settingsVariables temp;
-  if (!merge) {
+  if(!merge)
+  {
     variables.clear();
   }
   std::cout << "json: Extract info" << std::endl;
-  cJSON_ArrayForEach(setting, settings) {
+  cJSON_ArrayForEach(setting, settings)
+  {
     cJSON* name = cJSON_GetObjectItemCaseSensitive(setting, "name");
     cJSON* value = cJSON_GetObjectItemCaseSensitive(setting, "value");
     temp.name = name->valuestring;
-    if (!cJSON_IsNumber(value)) {
+    if(!cJSON_IsNumber(value))
+    {
       temp.textValue = value->valuestring;
       temp.type = "text";
       temp.numberValue = 0;
-    } else {
+    }
+    else
+    {
       temp.textValue.empty();
       temp.numberValue = value->valuedouble;
       temp.type = "number";
     }
-    if (variables_fields.find(temp.name) == variables_fields.end()) {
+    if(variables_fields.find(temp.name) == variables_fields.end())
+    {
       variables_fields.insert({temp.name, variables.size()});
       variables.push_back(temp);
-    } else {
+    }
+    else
+    {
       int variable_index = variables_fields.at(temp.name);
       variables.at(variable_index) = temp;
     }
@@ -221,11 +274,15 @@ void JSONSettings::read_settings_json_internal(std::string& contents, bool merge
 
   // Print acquired data
   std::cout << "\nModule-specific settings:\n\n";
-  for (auto it : variables) {
+  for(auto it : variables)
+  {
     std::cout << it.name << ": ";
-    if (it.type == "text") {
+    if(it.type == "text")
+    {
       std::cout << it.textValue << "\n";
-    } else if (it.type == "number") {
+    }
+    else if(it.type == "number")
+    {
       std::cout << it.numberValue << "\n";
     }
   }
@@ -234,13 +291,15 @@ void JSONSettings::read_settings_json_internal(std::string& contents, bool merge
   cJSON_Delete(root);
 }
 
-void JSONSettings::write_config_json() {
+void JSONSettings::write_config_json()
+{
   std::cout << "SPIFFS: Mounting FS" << std::endl;
   spiffs.mount_spiffs();
 
   std::cout << "SPIFFS: Opening config.json file" << std::endl;
   FILE* f = fopen("/spiffs/config.json", "w");
-  if (f == NULL) {
+  if(f == NULL)
+  {
     std::cout << "SPIFFS: Failed to open config.json file" << std::endl;
     return;
   }
@@ -331,13 +390,15 @@ void JSONSettings::write_config_json() {
   spiffs.unmount_spiffs();
 }
 
-void JSONSettings::write_settings_json() {
+void JSONSettings::write_settings_json()
+{
   std::cout << "SPIFFS: Mounting FS" << std::endl;
   spiffs.mount_spiffs();
 
   std::cout << "SPIFFS: Opening settings.json file" << std::endl;
   FILE* f = fopen("/spiffs/settings.json", "w");
-  if (f == NULL) {
+  if(f == NULL)
+  {
     std::cout << "SPIFFS: Failed to open settings.json file" << std::endl;
     return;
   }
@@ -348,14 +409,18 @@ void JSONSettings::write_settings_json() {
   cJSON* data = NULL;
   cJSON_AddItemToObject(root, "settings", settings);
 
-  for (auto it : variables) {
+  for(auto it : variables)
+  {
     setting = cJSON_CreateObject();
     cJSON_AddItemToArray(settings, setting);
     data = cJSON_CreateString(it.name.c_str());
     cJSON_AddItemToObject(setting, "name", data);
-    if (it.type == "text") {
+    if(it.type == "text")
+    {
       data = cJSON_CreateString(it.textValue.c_str());
-    } else if (it.type == "number") {
+    }
+    else if(it.type == "number")
+    {
       data = cJSON_CreateNumber(it.numberValue);
     }
     cJSON_AddItemToObject(setting, "value", data);
@@ -376,4 +441,4 @@ void JSONSettings::write_settings_json() {
   spiffs.unmount_spiffs();
 }
 
-}  // namespace PuaraAPI
+} 

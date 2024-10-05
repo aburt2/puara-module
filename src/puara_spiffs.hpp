@@ -6,31 +6,35 @@
 #include <unordered_map>
 #include <vector>
 
-namespace PuaraAPI {
+namespace PuaraAPI
+{
 struct DeviceConfiguration;
 struct Serial;
 struct Webserver;
 
-struct SPIFFS {
- public:
+struct SPIFFS
+{
+public:
   void config_spiffs();
   void mount_spiffs();
   void unmount_spiffs();
 
- private:
+private:
   esp_vfs_spiffs_conf_t spiffs_config;
   std::string spiffs_base_path;
 };
 
 // FIXME std::variant<std::string, double> instead
-struct settingsVariables {
+struct settingsVariables
+{
   std::string name;
   std::string type;
   std::string textValue;
   double numberValue;
 };
 
-struct JSONSettings {
+struct JSONSettings
+{
   DeviceConfiguration& config;
   SPIFFS& spiffs;
 
@@ -54,4 +58,4 @@ struct JSONSettings {
   void read_config_json_internal(std::string& contents);
   void merge_settings_json(std::string& new_contents);
 };
-}  // namespace PuaraAPI
+} 

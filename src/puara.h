@@ -8,14 +8,15 @@
 #ifndef PUARA_H
 #define PUARA_H
 
+#include "puara_config.hpp"
+
 #include <string>
 #include <string_view>
 
-#include "puara_config.hpp"
-
 typedef void* httpd_handle_t;
-class Puara {
- public:
+class Puara
+{
+public:
   void start(PuaraAPI::Monitors monitor = PuaraAPI::UART_MONITOR);
 
   httpd_handle_t start_webserver(void);

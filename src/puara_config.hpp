@@ -1,11 +1,18 @@
 #pragma once
 #include <string>
 
-namespace PuaraAPI {
+namespace PuaraAPI
+{
 
-enum Monitors { UART_MONITOR = 0, JTAG_MONITOR = 1, USB_MONITOR = 2 };
+enum Monitors
+{
+  UART_MONITOR = 0,
+  JTAG_MONITOR = 1,
+  USB_MONITOR = 2
+};
 
-struct DeviceConfiguration {
+struct DeviceConfiguration
+{
   unsigned int version = 20220906;
   std::string dmiName;
   std::string device;
@@ -25,4 +32,4 @@ struct DeviceConfiguration {
   bool IP1_ready();
   bool IP2_ready();
 };
-}  // namespace PuaraAPI
+} 

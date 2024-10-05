@@ -9,14 +9,16 @@ typedef void* httpd_handle_t;
 struct httpd_req;
 typedef struct httpd_req httpd_req_t;
 
-namespace PuaraAPI {
+namespace PuaraAPI
+{
 struct DeviceConfiguration;
 struct Device;
 struct SPIFFS;
 struct JSONSettings;
 struct WiFi;
 
-struct Webserver {
+struct Webserver
+{
   DeviceConfiguration& config;
   Device& device;
   SPIFFS& spiffs;
@@ -54,16 +56,9 @@ struct Webserver {
   httpd_config_t webserver_config;
 
   // FIXME frozen::hash_map
-  std::unordered_map<std::string, int> config_fields = {{"SSID", 1},
-                                                        {"APpasswd", 2},
-                                                        {"APpasswdValidate", 3},
-                                                        {"oscIP1", 4},
-                                                        {"oscPORT1", 5},
-                                                        {"oscIP2", 6},
-                                                        {"oscPORT2", 7},
-                                                        {"password", 8},
-                                                        {"reboot", 9},
-                                                        {"persistentAP", 10},
-                                                        {"localPORT", 11}};
+  std::unordered_map<std::string, int> config_fields
+      = {{"SSID", 1},     {"APpasswd", 2},      {"APpasswdValidate", 3}, {"oscIP1", 4},
+         {"oscPORT1", 5}, {"oscIP2", 6},        {"oscPORT2", 7},         {"password", 8},
+         {"reboot", 9},   {"persistentAP", 10}, {"localPORT", 11}};
 };
-}  // namespace PuaraAPI
+}

@@ -4,7 +4,8 @@
 
 #include <string>
 
-namespace PuaraAPI {
+namespace PuaraAPI
+{
 
 void find_and_replace(std::string old_text, std::string new_text, std::string& str);
 void find_and_replace(std::string old_text, double new_number, std::string& str);
@@ -14,13 +15,10 @@ std::string urlDecode(std::string text);
 std::string convertToString(char* a);
 
 template <auto Method, typename T>
-void createTask(T* object, std::string_view name, uint32_t stack_depth) {
-  xTaskCreate(
-      +[](void* p) { (static_cast<T*>(p)->*Method)(); },
-      name.data(),
-      stack_depth,
-      object,
-      10,
-      NULL);
+void createTask(T* object, std::string_view name, uint32_t stack_depth)
+{
+  xTaskCreate(+[](void* p) {
+    (static_cast<T*>(p)->*Method)();
+  }, name.data(), stack_depth, object, 10, NULL);
 }
-}  // namespace PuaraAPI
+} 
