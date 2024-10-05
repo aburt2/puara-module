@@ -1,7 +1,5 @@
 #include "puara_web.hpp"
 
-#include <esp_http_server.h>
-
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -13,201 +11,171 @@
 #include "puara_utils.hpp"
 #include "puara_wifi.hpp"
 
-struct httpd_req;
-typedef struct httpd_req httpd_req_t;
-namespace PuaraImpl {
+namespace PuaraAPI {
 
-esp_err_t index_get_handler(httpd_req_t* req);
-esp_err_t get_handler(httpd_req_t* req);
-esp_err_t style_get_handler(httpd_req_t* req);
-esp_err_t settings_get_handler(httpd_req_t* req);
-esp_err_t settings_post_handler(httpd_req_t* req);
-esp_err_t scan_get_handler(httpd_req_t* req);
-esp_err_t index_post_handler(httpd_req_t* req);
-std::string prepare_index();
-
-}  // namespace PuaraImpl
-
-namespace PuaraImpl {
-httpd_uri_t reboot;
-httpd_uri_t index;
-httpd_uri_t style;
-// httpd_uri_t factory;
-httpd_uri_t scan;
-// httpd_uri_t update;
-httpd_uri_t indexpost;
-httpd_uri_t settings;
-httpd_uri_t settingspost;
-
-std::string APpasswdVal1;
-std::string APpasswdVal2;
-
-httpd_handle_t webserver;
-httpd_config_t webserver_config;
-std::unordered_map<std::string, int> config_fields = {{"SSID", 1},
-                                                      {"APpasswd", 2},
-                                                      {"APpasswdValidate", 3},
-                                                      {"oscIP1", 4},
-                                                      {"oscPORT1", 5},
-                                                      {"oscIP2", 6},
-                                                      {"oscPORT2", 7},
-                                                      {"password", 8},
-                                                      {"reboot", 9},
-                                                      {"persistentAP", 10},
-                                                      {"localPORT", 11}};
-
-}  // namespace PuaraImpl
-httpd_handle_t PuaraImpl::start_webserver(void) {
-  if (!ApStarted) {
+httpd_handle_t Webserver::start_webserver(void) {
+  if (!wifi.ApStarted) {
     std::cout << "start_webserver: Cannot start webserver: AP and STA not initializated"
               << std::endl;
     return NULL;
   }
-  PuaraImpl::webserver = NULL;
+  this->webserver = NULL;
 
-  PuaraImpl::webserver_config.task_priority = tskIDLE_PRIORITY + 5;
-  PuaraImpl::webserver_config.stack_size = 4096;
-  PuaraImpl::webserver_config.core_id = tskNO_AFFINITY;
-  PuaraImpl::webserver_config.server_port = 80;
-  PuaraImpl::webserver_config.ctrl_port = 32768;
-  PuaraImpl::webserver_config.max_open_sockets = 7;
-  PuaraImpl::webserver_config.max_uri_handlers = 9;
-  PuaraImpl::webserver_config.max_resp_headers = 9;
-  PuaraImpl::webserver_config.backlog_conn = 5;
-  PuaraImpl::webserver_config.lru_purge_enable = true;
-  PuaraImpl::webserver_config.recv_wait_timeout = 5;
-  PuaraImpl::webserver_config.send_wait_timeout = 5;
-  PuaraImpl::webserver_config.global_user_ctx = NULL;
-  PuaraImpl::webserver_config.global_user_ctx_free_fn = NULL;
-  PuaraImpl::webserver_config.global_transport_ctx = NULL;
-  PuaraImpl::webserver_config.global_transport_ctx_free_fn = NULL;
-  PuaraImpl::webserver_config.open_fn = NULL;
-  PuaraImpl::webserver_config.close_fn = NULL;
-  PuaraImpl::webserver_config.uri_match_fn = NULL;
+  this->webserver_config.task_priority = tskIDLE_PRIORITY + 5;
+  this->webserver_config.stack_size = 4096;
+  this->webserver_config.core_id = tskNO_AFFINITY;
+  this->webserver_config.server_port = 80;
+  this->webserver_config.ctrl_port = 32768;
+  this->webserver_config.max_open_sockets = 7;
+  this->webserver_config.max_uri_handlers = 9;
+  this->webserver_config.max_resp_headers = 9;
+  this->webserver_config.backlog_conn = 5;
+  this->webserver_config.lru_purge_enable = true;
+  this->webserver_config.recv_wait_timeout = 5;
+  this->webserver_config.send_wait_timeout = 5;
+  this->webserver_config.global_user_ctx = NULL;
+  this->webserver_config.global_user_ctx_free_fn = NULL;
+  this->webserver_config.global_transport_ctx = NULL;
+  this->webserver_config.global_transport_ctx_free_fn = NULL;
+  this->webserver_config.open_fn = NULL;
+  this->webserver_config.close_fn = NULL;
+  this->webserver_config.uri_match_fn = NULL;
 
-  PuaraImpl::index.uri = "/";
-  PuaraImpl::index.method = HTTP_GET, PuaraImpl::index.handler = index_get_handler,
-  PuaraImpl::index.user_ctx = (char*)"/spiffs/index.html";
+#define make_http_func(func_name, url)                  \
+  +[](httpd_req_t* req) -> esp_err_t {                  \
+    auto self = static_cast<Webserver*>(req->user_ctx); \
+    req->user_ctx = (char*)url;                         \
+    return self->func_name(req);                        \
+  }
+  this->index.uri = "/";
+  this->index.method = HTTP_GET;
+  this->index.handler = make_http_func(index_get_handler, "/spiffs/index.html");
+  this->index.user_ctx = this;
 
-  PuaraImpl::indexpost.uri = "/";
-  PuaraImpl::indexpost.method = HTTP_POST, PuaraImpl::indexpost.handler = index_post_handler,
-  PuaraImpl::indexpost.user_ctx = (char*)"/spiffs/index.html";
+  this->indexpost.uri = "/";
+  this->indexpost.method = HTTP_POST;
+  this->indexpost.handler = make_http_func(index_post_handler, "/spiffs/index.html");
+  this->indexpost.user_ctx = this;
 
-  PuaraImpl::style.uri = "/style.css";
-  PuaraImpl::style.method = HTTP_GET, PuaraImpl::style.handler = style_get_handler,
-  PuaraImpl::style.user_ctx = (char*)"/spiffs/style.css";
+  this->style.uri = "/style.css";
+  this->style.method = HTTP_GET;
+  this->style.handler = make_http_func(style_get_handler, "/spiffs/style.css");
+  this->style.user_ctx = this;
 
-  // PuaraImpl::factory.uri = "/factory.html";
-  // PuaraImpl::factory.method    = HTTP_GET,
-  // PuaraImpl::factory.handler   = get_handler,
-  // PuaraImpl::factory.user_ctx  = (char*)"/spiffs/factory.html";
+  // this->factory.uri = "/factory.html";
+  // this->factory.method    = HTTP_GET;
+  // this->factory.handler   = get_handler;
+  // this->factory.user_ctx  = (char*)"/spiffs/factory.html";
 
-  PuaraImpl::reboot.uri = "/reboot.html";
-  PuaraImpl::reboot.method = HTTP_GET, PuaraImpl::reboot.handler = get_handler,
-  PuaraImpl::reboot.user_ctx = (char*)"/spiffs/reboot.html";
+  this->reboot.uri = "/reboot.html";
+  this->reboot.method = HTTP_GET;
+  this->reboot.handler = make_http_func(get_handler, "/spiffs/reboot.html");
+  this->reboot.user_ctx = this;
 
-  PuaraImpl::scan.uri = "/scan.html";
-  PuaraImpl::scan.method = HTTP_GET, PuaraImpl::scan.handler = scan_get_handler,
-  PuaraImpl::scan.user_ctx = (char*)"/spiffs/scan.html";
+  this->scan.uri = "/scan.html";
+  this->scan.method = HTTP_GET;
+  this->scan.handler = make_http_func(scan_get_handler, "/spiffs/scan.html");
+  this->scan.user_ctx = this;
 
-  // PuaraImpl::update.uri = "/update.html";
-  // PuaraImpl::update.method    = HTTP_GET,
-  // PuaraImpl::update.handler   = get_handler,
-  // PuaraImpl::update.user_ctx  = (char*)"/spiffs/update.html";
+  // this->update.uri = "/update.html";
+  // this->update.method    = HTTP_GET;
+  // this->update.handler   = get_handler;
+  // this->update.user_ctx  = (char*)"/spiffs/update.html";
 
-  PuaraImpl::settings.uri = "/settings.html";
-  PuaraImpl::settings.method = HTTP_GET, PuaraImpl::settings.handler = settings_get_handler,
-  PuaraImpl::settings.user_ctx = (char*)"/spiffs/settings.html";
+  this->settingsget.uri = "/settings.html";
+  this->settingsget.method = HTTP_GET;
+  this->settingsget.handler = make_http_func(settings_get_handler, "/spiffs/settings.html");
+  this->settingsget.user_ctx = this;
 
-  PuaraImpl::settingspost.uri = "/settings.html";
-  PuaraImpl::settingspost.method = HTTP_POST,
-  PuaraImpl::settingspost.handler = settings_post_handler,
-  PuaraImpl::settingspost.user_ctx = (char*)"/spiffs/settings.html";
+  this->settingspost.uri = "/settings.html";
+  this->settingspost.method = HTTP_POST;
+  this->settingspost.handler = make_http_func(settings_post_handler, "/spiffs/settings.html");
+  this->settingspost.user_ctx = this;
 
   // Start the httpd server
   std::cout << "webserver: Starting server on port: " << webserver_config.server_port << std::endl;
   if (httpd_start(&webserver, &webserver_config) == ESP_OK) {
     // Set URI handlers
     std::cout << "webserver: Registering URI handlers" << std::endl;
-    httpd_register_uri_handler(webserver, &index);
-    httpd_register_uri_handler(webserver, &indexpost);
-    httpd_register_uri_handler(webserver, &style);
-    httpd_register_uri_handler(webserver, &scan);
-    // httpd_register_uri_handler(webserver, &factory);
-    httpd_register_uri_handler(webserver, &reboot);
-    // httpd_register_uri_handler(webserver, &update);
-    httpd_register_uri_handler(webserver, &settings);
-    httpd_register_uri_handler(webserver, &settingspost);
+    httpd_register_uri_handler(webserver, &this->index);
+    httpd_register_uri_handler(webserver, &this->indexpost);
+    httpd_register_uri_handler(webserver, &this->style);
+    httpd_register_uri_handler(webserver, &this->scan);
+    // httpd_register_uri_handler(webserver, &this->factory);
+    httpd_register_uri_handler(webserver, &this->reboot);
+    // httpd_register_uri_handler(webserver, &this->update);
+    httpd_register_uri_handler(webserver, &this->settingsget);
+    httpd_register_uri_handler(webserver, &this->settingspost);
     return webserver;
   }
 
   std::cout << "webserver: Error starting server!" << std::endl;
   return NULL;
-}
+}  // namespace PuaraAPI
 
-void PuaraImpl::stop_webserver(void) {
+void Webserver::stop_webserver(void) {
   // Stop the httpd server
   httpd_stop(webserver);
 }
 
-std::string PuaraImpl::prepare_index() {
-  PuaraImpl::mount_spiffs();
+std::string Webserver::prepare_index() {
+  spiffs.mount_spiffs();
   std::cout << "http (spiffs): Reading index file" << std::endl;
   std::ifstream in("/spiffs/index.html");
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
   // Put the module info on the HTML before send response
-  PuaraImpl::find_and_replace("%DMINAME%", PuaraImpl::dmiName, contents);
-  if (PuaraImpl::StaIsConnected) {
-    PuaraImpl::find_and_replace("%STATUS%",
-                                "Currently connected on "
-                                "<strong style=\"color:Tomato;\">" +
-                                    PuaraImpl::wifiSSID + "</strong> network",
-                                contents);
+  find_and_replace("%DMINAME%", config.dmiName, contents);
+  if (wifi.StaIsConnected) {
+    find_and_replace("%STATUS%",
+                     "Currently connected on "
+                     "<strong style=\"color:Tomato;\">" +
+                         config.wifiSSID + "</strong> network",
+                     contents);
   } else {
-    PuaraImpl::find_and_replace("%STATUS%", "Currently not connected to any network", contents);
+    find_and_replace("%STATUS%", "Currently not connected to any network", contents);
   }
-  PuaraImpl::find_and_replace("%CURRENTSSID%", PuaraImpl::currentSSID, contents);
-  PuaraImpl::find_and_replace("%CURRENTPSK%", PuaraImpl::wifiPSK, contents);
-  PuaraImpl::checkmark("%CURRENTPERSISTENT%", PuaraImpl::persistentAP, contents);
-  PuaraImpl::find_and_replace("%DEVICENAME%", PuaraImpl::device, contents);
-  PuaraImpl::find_and_replace("%CURRENTOSC1%", PuaraImpl::oscIP1, contents);
-  PuaraImpl::find_and_replace("%CURRENTPORT1%", PuaraImpl::oscPORT1, contents);
-  PuaraImpl::find_and_replace("%CURRENTOSC2%", PuaraImpl::oscIP2, contents);
-  PuaraImpl::find_and_replace("%CURRENTPORT2%", PuaraImpl::oscPORT2, contents);
-  PuaraImpl::find_and_replace("%CURRENTLOCALPORT%", PuaraImpl::localPORT, contents);
-  PuaraImpl::find_and_replace("%CURRENTSSID2%", PuaraImpl::wifiSSID, contents);
-  PuaraImpl::find_and_replace("%CURRENTIP%", PuaraImpl::currentSTA_IP, contents);
-  PuaraImpl::find_and_replace("%CURRENTAPIP%", PuaraImpl::currentAP_IP, contents);
-  PuaraImpl::find_and_replace("%CURRENTSTAMAC%", PuaraImpl::currentSTA_MAC, contents);
-  PuaraImpl::find_and_replace("%CURRENTAPMAC%", PuaraImpl::currentAP_MAC, contents);
+  find_and_replace("%CURRENTSSID%", wifi.currentSSID, contents);
+  find_and_replace("%CURRENTPSK%", config.wifiPSK, contents);
+  checkmark("%CURRENTPERSISTENT%", config.persistentAP, contents);
+  find_and_replace("%DEVICENAME%", config.device, contents);
+  find_and_replace("%CURRENTOSC1%", config.oscIP1, contents);
+  find_and_replace("%CURRENTPORT1%", config.oscPORT1, contents);
+  find_and_replace("%CURRENTOSC2%", config.oscIP2, contents);
+  find_and_replace("%CURRENTPORT2%", config.oscPORT2, contents);
+  find_and_replace("%CURRENTLOCALPORT%", config.localPORT, contents);
+  find_and_replace("%CURRENTSSID2%", config.wifiSSID, contents);
+  find_and_replace("%CURRENTIP%", wifi.currentSTA_IP, contents);
+  find_and_replace("%CURRENTAPIP%", wifi.currentAP_IP, contents);
+  find_and_replace("%CURRENTSTAMAC%", wifi.currentSTA_MAC, contents);
+  find_and_replace("%CURRENTAPMAC%", wifi.currentAP_MAC, contents);
   std::ostringstream tempBuf;
-  tempBuf << std::setfill('0') << std::setw(3) << std::hex << PuaraImpl::id;
-  PuaraImpl::find_and_replace("%MODULEID%", tempBuf.str(), contents);
-  PuaraImpl::find_and_replace("%MODULEAUTH%", PuaraImpl::author, contents);
-  PuaraImpl::find_and_replace("%MODULEINST%", PuaraImpl::institution, contents);
-  PuaraImpl::find_and_replace("%MODULEVER%", PuaraImpl::version, contents);
+  tempBuf << std::setfill('0') << std::setw(3) << std::hex << config.id;
+  find_and_replace("%MODULEID%", tempBuf.str(), contents);
+  find_and_replace("%MODULEAUTH%", config.author, contents);
+  find_and_replace("%MODULEINST%", config.institution, contents);
+  find_and_replace("%MODULEVER%", config.version, contents);
 
-  PuaraImpl::unmount_spiffs();
+  spiffs.unmount_spiffs();
 
   return contents;
 }
 
-esp_err_t PuaraImpl::index_get_handler(httpd_req_t* req) {
+esp_err_t Webserver::index_get_handler(httpd_req_t* req) {
   std::string prepared_index = prepare_index();
   httpd_resp_sendstr(req, prepared_index.c_str());
 
   return ESP_OK;
 }
 
-esp_err_t PuaraImpl::settings_get_handler(httpd_req_t* req) {
-  PuaraImpl::mount_spiffs();
+esp_err_t Webserver::settings_get_handler(httpd_req_t* req) {
+  spiffs.mount_spiffs();
   std::cout << "http (spiffs): Reading settings file" << std::endl;
   std::ifstream in("/spiffs/settings.html");
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
   std::cout << "settings_get_handler: Adding variables to HTML" << std::endl;
   std::string settings;
-  for (auto it : variables) {
+  for (const auto& it : this->settings.variables) {
     if (it.type == "text") {
       settings.append(
           "<div class=\"row\"><div class=\"col-25\"><label "
@@ -231,7 +199,7 @@ esp_err_t PuaraImpl::settings_get_handler(httpd_req_t* req) {
   return ESP_OK;
 }
 
-esp_err_t PuaraImpl::settings_post_handler(httpd_req_t* req) {
+esp_err_t Webserver::settings_post_handler(httpd_req_t* req) {
   char buf[200];
 
   int api_return, remaining = req->content_len;
@@ -256,6 +224,8 @@ esp_err_t PuaraImpl::settings_post_handler(httpd_req_t* req) {
     str_buf.append(delimiter);
 
     std::cout << "Settings stored:" << std::endl;
+    auto& variables = settings.variables;
+    auto& variables_fields = settings.variables_fields;
     while ((pos = str_buf.find(delimiter)) != std::string::npos) {
       str_token = str_buf.substr(0, pos);
       field_pos = str_buf.find(field_delimiter);
@@ -274,63 +244,63 @@ esp_err_t PuaraImpl::settings_post_handler(httpd_req_t* req) {
     remaining -= api_return;
   }
 
-  write_settings_json();
-  mount_spiffs();
+  settings.write_settings_json();
+  spiffs.mount_spiffs();
   std::cout << "http (spiffs): Reading saved.html file" << std::endl;
   std::ifstream in("/spiffs/saved.html");
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
   httpd_resp_sendstr(req, contents.c_str());
-  unmount_spiffs();
+  spiffs.unmount_spiffs();
 
   return ESP_OK;
 }
 
-esp_err_t PuaraImpl::get_handler(httpd_req_t* req) {
+esp_err_t Webserver::get_handler(httpd_req_t* req) {
   const char* resp_str = (const char*)req->user_ctx;
-  PuaraImpl::mount_spiffs();
+  spiffs.mount_spiffs();
   std::cout << "http (spiffs): Reading requested file" << std::endl;
   std::ifstream in(resp_str);
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
   httpd_resp_sendstr(req, contents.c_str());
 
-  PuaraImpl::unmount_spiffs();
+  spiffs.unmount_spiffs();
 
   return ESP_OK;
 }
 
-esp_err_t PuaraImpl::style_get_handler(httpd_req_t* req) {
+esp_err_t Webserver::style_get_handler(httpd_req_t* req) {
   const char* resp_str = (const char*)req->user_ctx;
-  PuaraImpl::mount_spiffs();
+  spiffs.mount_spiffs();
   std::cout << "http (spiffs): Reading style.css file" << std::endl;
   std::ifstream in(resp_str);
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
   httpd_resp_set_type(req, "text/css");
   httpd_resp_sendstr(req, contents.c_str());
 
-  PuaraImpl::unmount_spiffs();
+  spiffs.unmount_spiffs();
 
   return ESP_OK;
 }
 
-esp_err_t PuaraImpl::scan_get_handler(httpd_req_t* req) {
+esp_err_t Webserver::scan_get_handler(httpd_req_t* req) {
   const char* resp_str = (const char*)req->user_ctx;
-  PuaraImpl::mount_spiffs();
+  spiffs.mount_spiffs();
   std::cout << "http (spiffs): Reading scan.html file" << std::endl;
   std::ifstream in(resp_str);
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-  wifi_scan();
-  find_and_replace("%SSIDS%", wifiAvailableSsid, contents);
+  wifi.wifi_scan();
+  find_and_replace("%SSIDS%", wifi.wifiAvailableSsid, contents);
   httpd_resp_sendstr(req, contents.c_str());
 
-  PuaraImpl::unmount_spiffs();
+  spiffs.unmount_spiffs();
 
   return ESP_OK;
 }
 
-// esp_err_t PuaraImpl::update_get_handler(httpd_req_t *req) {
+// esp_err_t Webserver::update_get_handler(httpd_req_t *req) {
 
 //     const char* resp_str = (const char*) req->user_ctx;
-//     PuaraImpl::mount_spiffs();
+//     spiffs.mount_spiffs();
 //     std::cout << "http (spiffs): Reading update.html file" << std::endl;
 //     std::ifstream in(resp_str);
 //     std::string contents((std::istreambuf_iterator<char>(in)),
@@ -338,12 +308,12 @@ esp_err_t PuaraImpl::scan_get_handler(httpd_req_t* req) {
 //     //httpd_resp_set_type(req, "text/html");
 //     httpd_resp_sendstr(req, contents.c_str());
 
-//     PuaraImpl::unmount_spiffs();
+//     spiffs.unmount_spiffs();
 
 //     return ESP_OK;
 // }
 
-esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
+esp_err_t Webserver::index_post_handler(httpd_req_t* req) {
   char buf[200];
   bool ret_flag = false;
 
@@ -380,7 +350,7 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
           case 1:
             std::cout << "SSID: " << str_token << std::endl;
             if (!str_token.empty()) {
-              wifiSSID = urlDecode(str_token);
+              config.wifiSSID = urlDecode(str_token);
             } else {
               std::cout << "SSID empty! Keeping the stored value" << std::endl;
             }
@@ -388,25 +358,25 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
           case 2:
             std::cout << "APpasswd: " << str_token << std::endl;
             if (!str_token.empty()) {
-              APpasswdVal1 = urlDecode(str_token);
+              this->APpasswdVal1 = urlDecode(str_token);
             } else {
               std::cout << "APpasswd empty! Keeping the stored value" << std::endl;
-              APpasswdVal1.clear();
+              this->APpasswdVal1.clear();
             };
             break;
           case 3:
             std::cout << "APpasswdValidate: " << str_token << std::endl;
             if (!str_token.empty()) {
-              APpasswdVal2 = urlDecode(str_token);
+              this->APpasswdVal2 = urlDecode(str_token);
             } else {
               std::cout << "APpasswdValidate empty! Keeping the stored value" << std::endl;
-              APpasswdVal2.clear();
+              this->APpasswdVal2.clear();
             };
             break;
           case 4:
             std::cout << "oscIP1: " << str_token << std::endl;
             if (!str_token.empty()) {
-              oscIP1 = str_token;
+              config.oscIP1 = str_token;
             } else {
               std::cout << "oscIP1 empty! Keeping the stored value" << std::endl;
             }
@@ -414,7 +384,7 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
           case 5:
             std::cout << "oscPORT1: " << str_token << std::endl;
             if (!str_token.empty()) {
-              oscPORT1 = stoi(str_token);
+              config.oscPORT1 = stoi(str_token);
             } else {
               std::cout << "oscPORT1 empty! Keeping the stored value" << std::endl;
             }
@@ -422,7 +392,7 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
           case 6:
             std::cout << "oscIP2: " << str_token << std::endl;
             if (!str_token.empty()) {
-              oscIP2 = str_token;
+              config.oscIP2 = str_token;
             } else {
               std::cout << "oscIP2 empty! Keeping the stored value" << std::endl;
             }
@@ -430,7 +400,7 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
           case 7:
             std::cout << "oscPORT2: " << str_token << std::endl;
             if (!str_token.empty()) {
-              oscPORT2 = stoi(str_token);
+              config.oscPORT2 = stoi(str_token);
             } else {
               std::cout << "oscPORT2 empty! Keeping the stored value" << std::endl;
             }
@@ -438,7 +408,7 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
           case 8:
             std::cout << "password: " << str_token << std::endl;
             if (!str_token.empty()) {
-              wifiPSK = urlDecode(str_token);
+              config.wifiPSK = urlDecode(str_token);
             } else {
               std::cout << "password empty! Keeping the stored value" << std::endl;
             }
@@ -454,7 +424,7 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
           case 11:
             std::cout << "localPORT: " << str_token << std::endl;
             if (!str_token.empty()) {
-              localPORT = stoi(str_token);
+              config.localPORT = stoi(str_token);
             } else {
               std::cout << "localPORT empty! Keeping the stored value" << std::endl;
             }
@@ -472,13 +442,13 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
 
     // processing some post info
     if (APpasswdVal1 == APpasswdVal2 && !APpasswdVal1.empty() && APpasswdVal1.length() > 7) {
-      APpasswd = APpasswdVal1;
+      config.APpasswd = APpasswdVal1;
       std::cout << "Puara password changed!\n";
     } else {
       std::cout
           << "Puara password doesn't match or shorter than 8 characteres. Passwork not changed.\n";
     }
-    persistentAP = checkbox_persistentAP;
+    config.persistentAP = checkbox_persistentAP;
     APpasswdVal1.clear();
     APpasswdVal2.clear();
 
@@ -486,23 +456,24 @@ esp_err_t PuaraImpl::index_post_handler(httpd_req_t* req) {
   }
 
   if (ret_flag) {
-    mount_spiffs();
+    spiffs.mount_spiffs();
     std::cout << "http (spiffs): Reading reboot.html file" << std::endl;
     std::ifstream in("/spiffs/reboot.html");
     std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     httpd_resp_sendstr(req, contents.c_str());
-    unmount_spiffs();
+    spiffs.unmount_spiffs();
     std::cout << "\nRebooting...\n" << std::endl;
-    xTaskCreate(&PuaraImpl::reboot_with_delay, "reboot_with_delay", 1024, NULL, 10, NULL);
+    createTask<&Device::reboot_with_delay>(&device, "reboot_with_delay", 1024);
   } else {
-    write_config_json();
-    mount_spiffs();
+    settings.write_config_json();
+    spiffs.mount_spiffs();
     std::cout << "http (spiffs): Reading saved.html file" << std::endl;
     std::ifstream in("/spiffs/saved.html");
     std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     httpd_resp_sendstr(req, contents.c_str());
-    unmount_spiffs();
+    spiffs.unmount_spiffs();
   }
 
   return ESP_OK;
 }
+}  // namespace PuaraAPI

@@ -1,38 +1,28 @@
 #pragma once
 #include <string>
 
-namespace PuaraImpl {
+namespace PuaraAPI {
+
 enum Monitors { UART_MONITOR = 0, JTAG_MONITOR = 1, USB_MONITOR = 2 };
 
-std::string get_dmi_name();
-unsigned int get_version();
-void set_version(unsigned int user_version);
-std::string getIP1();
-std::string getIP2();
-bool IP1_ready();
-bool IP2_ready();
-int unsigned getPORT1();
-int unsigned getPORT2();
-std::string getPORT1Str();
-std::string getPORT2Str();
-int unsigned getLocalPORT();
-std::string getLocalPORTStr();
+struct DeviceConfiguration {
+  unsigned int version = 20220906;
+  std::string dmiName;
+  std::string device;
+  unsigned int id;
+  std::string author;
+  std::string institution;
+  std::string APpasswd;
+  std::string wifiSSID;
+  std::string wifiPSK;
+  bool persistentAP = false;
+  std::string oscIP1;
+  unsigned int oscPORT1;
+  std::string oscIP2;
+  unsigned int oscPORT2;
+  unsigned int localPORT;
 
-inline unsigned int version = 20220906;
-inline std::string dmiName;
-inline std::string device;
-inline unsigned int id;
-inline std::string author;
-inline std::string institution;
-inline std::string APpasswd;
-inline std::string wifiSSID;
-inline std::string wifiPSK;
-inline bool persistentAP = false;
-inline std::string oscIP1;
-inline unsigned int oscPORT1;
-inline std::string oscIP2;
-inline unsigned int oscPORT2;
-inline unsigned int localPORT;
-inline std::string wifiAvailableSsid;
-
-}  // namespace PuaraImpl
+  bool IP1_ready();
+  bool IP2_ready();
+};
+}  // namespace PuaraAPI

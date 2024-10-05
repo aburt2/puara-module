@@ -14,29 +14,20 @@
 #include "esp32-hal-tinyusb.h"
 #endif
 
-#define PUARA_SERIAL_BUFSIZE 1024
-
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <istream>
 
-namespace PuaraImpl {
-char serial_data[PUARA_SERIAL_BUFSIZE];
-int serial_data_length;
-std::string serial_data_str;
-std::string serial_data_str_buffer;
+namespace PuaraAPI {
+static constexpr std::string_view data_start = "<<<";
+static constexpr std::string_view data_end = ">>>";
 
-// FIXME: refactor into std::string_view
-const std::string data_start = "<<<";
-const std::string data_end = ">>>";
-}  // namespace PuaraImpl
-
-void PuaraImpl::send_serial_data(std::string data) {
-  std::cout << PuaraImpl::data_start << data << PuaraImpl::data_end << std::endl;
+void Serial::send_serial_data(std::string data) {
+  std::cout << PuaraAPI::data_start << data << PuaraAPI::data_end << std::endl;
 }
 
-void PuaraImpl::interpret_serial(void* pvParameters) {
+void Serial::interpret_serial() {
   while (1) {
     vTaskDelay(1000 / portTICK_RATE_MS);
     if (serial_data_str.empty()) {
@@ -44,18 +35,18 @@ void PuaraImpl::interpret_serial(void* pvParameters) {
     }
     if (serial_data_str.compare("reset") == 0 || serial_data_str.compare("reboot") == 0) {
       std::cout << "\nRebooting...\n" << std::endl;
-      xTaskCreate(&PuaraImpl::reboot_with_delay, "reboot_with_delay", 1024, NULL, 10, NULL);
+      createTask<&Device::reboot_with_delay>(&device, "reboot_with_delay", 1024);
     } else if (serial_data_str.compare("ping") == 0) {
       std::cout << "pong\n";
     } else if (serial_data_str.compare("whatareyou") == 0) {
-      PuaraImpl::send_serial_data(PuaraImpl::dmiName);
+      this->send_serial_data(config.dmiName);
     } else if (serial_data_str.rfind("sendconfig", 0) == 0) {
       serial_data_str_buffer = serial_data_str.substr(serial_data_str.find(" ") + 1);
-      PuaraImpl::read_config_json_internal(serial_data_str_buffer);
+      settings.read_config_json_internal(serial_data_str_buffer);
     } else if (serial_data_str.rfind("writeconfig") == 0) {
-      PuaraImpl::write_config_json();
+      settings.write_config_json();
     } else if (serial_data_str.compare("readconfig") == 0) {
-      PuaraImpl::mount_spiffs();
+      spiffs.mount_spiffs();
       FILE* f = fopen("/spiffs/config.json", "r");
       if (f == NULL) {
         std::cout << "json: Failed to open file" << std::endl;
@@ -63,16 +54,16 @@ void PuaraImpl::interpret_serial(void* pvParameters) {
       }
       std::ifstream in("/spiffs/config.json");
       std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-      PuaraImpl::send_serial_data(contents);
+      this->send_serial_data(contents);
       fclose(f);
-      PuaraImpl::unmount_spiffs();
+      spiffs.unmount_spiffs();
     } else if (serial_data_str.rfind("sendsettings", 0) == 0) {
       serial_data_str_buffer = serial_data_str.substr(serial_data_str.find(" ") + 1);
-      PuaraImpl::read_settings_json_internal(serial_data_str_buffer, true);
+      settings.read_settings_json_internal(serial_data_str_buffer, true);
     } else if (serial_data_str.rfind("writesettings") == 0) {
-      PuaraImpl::write_settings_json();
+      settings.write_settings_json();
     } else if (serial_data_str.compare("readsettings") == 0) {
-      PuaraImpl::mount_spiffs();
+      spiffs.mount_spiffs();
       FILE* f = fopen("/spiffs/settings.json", "r");
       if (f == NULL) {
         std::cout << "json: Failed to open file" << std::endl;
@@ -80,9 +71,9 @@ void PuaraImpl::interpret_serial(void* pvParameters) {
       }
       std::ifstream in("/spiffs/settings.json");
       std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-      PuaraImpl::send_serial_data(contents);
+      this->send_serial_data(contents);
       fclose(f);
-      PuaraImpl::unmount_spiffs();
+      spiffs.unmount_spiffs();
     } else {
       std::cout << "\nI don´t recognize the command \"" << serial_data_str << "\"" << std::endl;
     }
@@ -92,7 +83,7 @@ void PuaraImpl::interpret_serial(void* pvParameters) {
 
 /// REFACTOR: this is related to logging & debugging
 
-void PuaraImpl::uart_monitor(void* pvParameters) {
+void Serial::uart_monitor() {
   const int uart_num0 = 0;  // UART port 0
   uart_config_t uart_config0 = {
       .baud_rate = 115200,
@@ -126,7 +117,7 @@ void PuaraImpl::uart_monitor(void* pvParameters) {
   }
 }
 
-void PuaraImpl::jtag_monitor(void* pvParameters) {
+void Serial::jtag_monitor() {
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
   // Setup jtag module for USB Serial reads
   usb_serial_jtag_driver_config_t jtag_config{
@@ -155,7 +146,7 @@ void PuaraImpl::jtag_monitor(void* pvParameters) {
 #endif
 }
 
-void PuaraImpl::usb_monitor(void* pvParameters) {
+void Serial::usb_monitor() {
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
   // // Setup usb module for USB reads
   // const char *product_name = dmiName.c_str();
@@ -186,19 +177,20 @@ void PuaraImpl::usb_monitor(void* pvParameters) {
 #endif
 }
 
-bool PuaraImpl::start_serial_listening() {
+bool Serial::start_serial_listening() {
   // std::cout << "starting serial monitor \n";
   if (module_monitor == UART_MONITOR) {
-    xTaskCreate(uart_monitor, "serial_monitor", 2048, NULL, 10, NULL);
-    xTaskCreate(interpret_serial, "interpret_serial", 4096, NULL, 10, NULL);
+    createTask<&Serial::uart_monitor>(this, "serial_monitor", 2048);
+    createTask<&Serial::interpret_serial>(this, "interpret_serial", 4096);
   } else if (module_monitor == JTAG_MONITOR) {
-    xTaskCreate(jtag_monitor, "serial_monitor", 2048, NULL, 10, NULL);
-    xTaskCreate(interpret_serial, "interpret_serial", 4096, NULL, 10, NULL);
+    createTask<&Serial::jtag_monitor>(this, "serial_monitor", 2048);
+    createTask<&Serial::interpret_serial>(this, "interpret_serial", 4096);
   } else if (module_monitor == USB_MONITOR) {
-    xTaskCreate(usb_monitor, "serial_monitor", 2048, NULL, 10, NULL);
-    xTaskCreate(interpret_serial, "interpret_serial", 4096, NULL, 10, NULL);
+    createTask<&Serial::usb_monitor>(this, "serial_monitor", 2048);
+    createTask<&Serial::interpret_serial>(this, "interpret_serial", 4096);
   } else {
     std::cout << "Invalid Monitor Type" << std::endl;
   }
   return 1;
 }
+}  // namespace PuaraAPI

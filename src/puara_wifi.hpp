@@ -7,32 +7,42 @@
 
 #include <string>
 
-namespace PuaraImpl {
-// Public API
+namespace PuaraAPI {
+struct DeviceConfiguration;
 
-void start_wifi();
-void wifi_scan(void);
-bool get_StaIsConnected();
+struct WiFi {
+  DeviceConfiguration& config;
 
-// Private API
+  // Public API
+  void start_wifi();
+  void wifi_scan(void);
+  bool get_StaIsConnected();
 
-inline const int wifi_connected_bit = BIT0;
-inline const int wifi_fail_bit = BIT1;
-inline EventGroupHandle_t s_wifi_event_group;
+  // Private API, accessed by web though
+  bool StaIsConnected = false;
+  bool ApStarted = false;
 
-inline wifi_config_t wifi_config_sta;
-inline wifi_config_t wifi_config_ap;
-inline short int connect_counter;
-inline bool StaIsConnected = false;
-inline bool ApStarted = false;
+  std::string currentSSID;
+  std::string currentSTA_IP;
+  std::string currentSTA_MAC;
+  std::string currentAP_IP;
+  std::string currentAP_MAC;
 
-inline std::string currentSSID;
-inline std::string currentSTA_IP;
-inline std::string currentSTA_MAC;
-inline std::string currentAP_IP;
-inline std::string currentAP_MAC;
+  std::string wifiAvailableSsid;
 
-void sta_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
-void wifi_init();
+  // Internal API
+  static void sta_event_handler(void* arg,
+                                esp_event_base_t event_base,
+                                int32_t event_id,
+                                void* event_data);
+  void wifi_init();
 
-}  // namespace PuaraImpl
+  const int wifi_connected_bit = BIT0;
+  const int wifi_fail_bit = BIT1;
+  EventGroupHandle_t s_wifi_event_group;
+
+  wifi_config_t wifi_config_sta;
+  wifi_config_t wifi_config_ap;
+  short int connect_counter;
+};
+}  // namespace PuaraAPI

@@ -1,6 +1,7 @@
 #pragma once
 
-namespace PuaraImpl {
-
-void reboot_with_delay(void* pvParameter);
-}
+namespace PuaraAPI {
+struct Device {
+  void reboot_with_delay();
+};
+}  // namespace PuaraAPI

@@ -2,7 +2,8 @@
 
 #include <iostream>
 
-void PuaraImpl::find_and_replace(std::string old_text, std::string new_text, std::string& str) {
+namespace PuaraAPI {
+void find_and_replace(std::string old_text, std::string new_text, std::string& str) {
   std::size_t old_text_position = str.find(old_text);
   while (old_text_position != std::string::npos) {
     str.replace(old_text_position, old_text.length(), new_text);
@@ -11,7 +12,7 @@ void PuaraImpl::find_and_replace(std::string old_text, std::string new_text, std
   std::cout << "http (find_and_replace): Success" << std::endl;
 }
 
-void PuaraImpl::find_and_replace(std::string old_text, double new_number, std::string& str) {
+void find_and_replace(std::string old_text, double new_number, std::string& str) {
   std::size_t old_text_position = str.find(old_text);
   while (old_text_position != std::string::npos) {
     std::string conversion = std::to_string(new_number);
@@ -21,7 +22,7 @@ void PuaraImpl::find_and_replace(std::string old_text, double new_number, std::s
   std::cout << "http (find_and_replace): Success" << std::endl;
 }
 
-void PuaraImpl::find_and_replace(std::string old_text, unsigned int new_number, std::string& str) {
+void find_and_replace(std::string old_text, unsigned int new_number, std::string& str) {
   std::size_t old_text_position = str.find(old_text);
   while (old_text_position != std::string::npos) {
     std::string conversion = std::to_string(new_number);
@@ -31,7 +32,7 @@ void PuaraImpl::find_and_replace(std::string old_text, unsigned int new_number, 
   std::cout << "http (find_and_replace): Success" << std::endl;
 }
 
-void PuaraImpl::checkmark(std::string old_text, bool value, std::string& str) {
+void checkmark(std::string old_text, bool value, std::string& str) {
   std::size_t old_text_position = str.find(old_text);
   if (old_text_position != std::string::npos) {
     std::string conversion;
@@ -47,12 +48,12 @@ void PuaraImpl::checkmark(std::string old_text, bool value, std::string& str) {
   }
 }
 
-std::string PuaraImpl::convertToString(char* a) {
+std::string convertToString(char* a) {
   std::string s(a);
   return s;
 }
 
-std::string PuaraImpl::urlDecode(std::string text) {
+std::string urlDecode(std::string text) {
   std::string escaped;
   for (auto i = text.begin(), nd = text.end(); i < nd; ++i) {
     auto c = (*i);
@@ -73,3 +74,4 @@ std::string PuaraImpl::urlDecode(std::string text) {
   }
   return escaped;
 }
+}  // namespace PuaraAPI

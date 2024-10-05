@@ -1,9 +1,6 @@
 #include "puara_spiffs.hpp"
 
 #include <cJSON.h>
-#include <esp_err.h>
-#include <esp_spi_flash.h>
-#include <esp_spiffs.h>
 
 #include <fstream>
 #include <iomanip>
@@ -11,26 +8,21 @@
 
 #include "puara_config.hpp"
 
-namespace PuaraImpl {
+namespace PuaraAPI {
 
-esp_vfs_spiffs_conf_t spiffs_config;
-std::string spiffs_base_path;
+static constexpr uint8_t spiffs_max_files = 10;
+static constexpr bool spiffs_format_if_mount_failed = false;
 
-static const uint8_t spiffs_max_files = 10;
-static const bool spiffs_format_if_mount_failed = false;
+void SPIFFS::config_spiffs() { spiffs_base_path = "/spiffs"; }
 
-}  // namespace PuaraImpl
-
-void PuaraImpl::config_spiffs() { spiffs_base_path = "/spiffs"; }
-
-void PuaraImpl::mount_spiffs() {
+void SPIFFS::mount_spiffs() {
   if (!esp_spiffs_mounted(spiffs_config.partition_label)) {
     std::cout << "spiffs: Initializing SPIFFS" << std::endl;
 
-    spiffs_config.base_path = PuaraImpl::spiffs_base_path.c_str();
-    spiffs_config.max_files = PuaraImpl::spiffs_max_files;
+    spiffs_config.base_path = this->spiffs_base_path.c_str();
+    spiffs_config.max_files = PuaraAPI::spiffs_max_files;
     spiffs_config.partition_label = NULL;
-    spiffs_config.format_if_mount_failed = PuaraImpl::spiffs_format_if_mount_failed;
+    spiffs_config.format_if_mount_failed = PuaraAPI::spiffs_format_if_mount_failed;
 
     // Use settings defined above to initialize and mount SPIFFS filesystem.
     // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
@@ -61,7 +53,7 @@ void PuaraImpl::mount_spiffs() {
   }
 }
 
-void PuaraImpl::unmount_spiffs() {
+void SPIFFS::unmount_spiffs() {
   // All done, unmount partition and disable SPIFFS
   if (esp_spiffs_mounted(spiffs_config.partition_label)) {
     esp_vfs_spiffs_unregister(spiffs_config.partition_label);
@@ -74,18 +66,18 @@ void PuaraImpl::unmount_spiffs() {
 //// CONFIG ////
 
 // Can be improved
-double PuaraImpl::getVarNumber(std::string varName) {
+double JSONSettings::getVarNumber(std::string varName) {
   return variables.at(variables_fields.at(varName)).numberValue;
 }
 
-std::string PuaraImpl::getVarText(std::string varName) {
+std::string JSONSettings::getVarText(std::string varName) {
   return variables.at(variables_fields.at(varName)).textValue;
 }
 
-void PuaraImpl::read_config_json() {  // Deserialize
+void JSONSettings::read_config_json() {  // Deserialize
 
   std::cout << "json: Mounting FS" << std::endl;
-  PuaraImpl::mount_spiffs();
+  spiffs.mount_spiffs();
 
   std::cout << "json: Opening config json file" << std::endl;
   FILE* f = fopen("/spiffs/config.json", "r");
@@ -98,82 +90,82 @@ void PuaraImpl::read_config_json() {  // Deserialize
   std::ifstream in("/spiffs/config.json");
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-  PuaraImpl::read_config_json_internal(contents);
+  read_config_json_internal(contents);
 
   fclose(f);
-  PuaraImpl::unmount_spiffs();
+  spiffs.unmount_spiffs();
 }
 
-void PuaraImpl::read_config_json_internal(std::string& contents) {
+void JSONSettings::read_config_json_internal(std::string& contents) {
   std::cout << "json: Getting data" << std::endl;
   cJSON* root = cJSON_Parse(contents.c_str());
   if (cJSON_GetObjectItem(root, "device")) {
-    PuaraImpl::device = cJSON_GetObjectItem(root, "device")->valuestring;
+    config.device = cJSON_GetObjectItem(root, "device")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "id")) {
-    PuaraImpl::id = cJSON_GetObjectItem(root, "id")->valueint;
+    config.id = cJSON_GetObjectItem(root, "id")->valueint;
   }
   if (cJSON_GetObjectItem(root, "author")) {
-    PuaraImpl::author = cJSON_GetObjectItem(root, "author")->valuestring;
+    config.author = cJSON_GetObjectItem(root, "author")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "institution")) {
-    PuaraImpl::institution = cJSON_GetObjectItem(root, "institution")->valuestring;
+    config.institution = cJSON_GetObjectItem(root, "institution")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "APpasswd")) {
-    PuaraImpl::APpasswd = cJSON_GetObjectItem(root, "APpasswd")->valuestring;
+    config.APpasswd = cJSON_GetObjectItem(root, "APpasswd")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "wifiSSID")) {
-    PuaraImpl::wifiSSID = cJSON_GetObjectItem(root, "wifiSSID")->valuestring;
+    config.wifiSSID = cJSON_GetObjectItem(root, "wifiSSID")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "wifiPSK")) {
-    PuaraImpl::wifiPSK = cJSON_GetObjectItem(root, "wifiPSK")->valuestring;
+    config.wifiPSK = cJSON_GetObjectItem(root, "wifiPSK")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "persistentAP")) {
-    PuaraImpl::persistentAP = cJSON_GetObjectItem(root, "persistentAP")->valueint;
+    config.persistentAP = cJSON_GetObjectItem(root, "persistentAP")->valueint;
   }
   if (cJSON_GetObjectItem(root, "oscIP1")) {
-    PuaraImpl::oscIP1 = cJSON_GetObjectItem(root, "oscIP1")->valuestring;
+    config.oscIP1 = cJSON_GetObjectItem(root, "oscIP1")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "oscPORT1")) {
-    PuaraImpl::oscPORT1 = cJSON_GetObjectItem(root, "oscPORT1")->valueint;
+    config.oscPORT1 = cJSON_GetObjectItem(root, "oscPORT1")->valueint;
   }
   if (cJSON_GetObjectItem(root, "oscIP2")) {
-    PuaraImpl::oscIP2 = cJSON_GetObjectItem(root, "oscIP2")->valuestring;
+    config.oscIP2 = cJSON_GetObjectItem(root, "oscIP2")->valuestring;
   }
   if (cJSON_GetObjectItem(root, "oscPORT2")) {
-    PuaraImpl::oscPORT2 = cJSON_GetObjectItem(root, "oscPORT2")->valueint;
+    config.oscPORT2 = cJSON_GetObjectItem(root, "oscPORT2")->valueint;
   }
   if (cJSON_GetObjectItem(root, "localPORT")) {
-    PuaraImpl::localPORT = cJSON_GetObjectItem(root, "localPORT")->valueint;
+    config.localPORT = cJSON_GetObjectItem(root, "localPORT")->valueint;
   }
 
   std::cout << "\njson: Data collected:\n\n"
-            << "device: " << device << "\n"
-            << "id: " << id << "\n"
-            << "author: " << author << "\n"
-            << "institution: " << institution << "\n"
-            << "APpasswd: " << APpasswd << "\n"
-            << "wifiSSID: " << wifiSSID << "\n"
-            << "wifiPSK: " << wifiPSK << "\n"
-            << "persistentAP: " << persistentAP << "\n"
-            << "oscIP1: " << oscIP1 << "\n"
-            << "oscPORT1: " << oscPORT1 << "\n"
-            << "oscIP2: " << oscIP2 << "\n"
-            << "oscPORT2: " << oscPORT2 << "\n"
-            << "localPORT: " << localPORT << "\n"
+            << "device: " << config.device << "\n"
+            << "id: " << config.id << "\n"
+            << "author: " << config.author << "\n"
+            << "institution: " << config.institution << "\n"
+            << "APpasswd: " << config.APpasswd << "\n"
+            << "wifiSSID: " << config.wifiSSID << "\n"
+            << "wifiPSK: " << config.wifiPSK << "\n"
+            << "persistentAP: " << config.persistentAP << "\n"
+            << "oscIP1: " << config.oscIP1 << "\n"
+            << "oscPORT1: " << config.oscPORT1 << "\n"
+            << "oscIP2: " << config.oscIP2 << "\n"
+            << "oscPORT2: " << config.oscPORT2 << "\n"
+            << "localPORT: " << config.localPORT << "\n"
             << std::endl;
 
   cJSON_Delete(root);
 
   std::stringstream tempBuf;
-  tempBuf << PuaraImpl::device << "_" << std::setfill('0') << std::setw(3) << PuaraImpl::id;
-  PuaraImpl::dmiName = tempBuf.str();
-  printf("Device unique name defined: %s\n", dmiName.c_str());
+  tempBuf << config.device << "_" << std::setfill('0') << std::setw(3) << config.id;
+  config.dmiName = tempBuf.str();
+  printf("Device unique name defined: %s\n", config.dmiName.c_str());
 }
 
-void PuaraImpl::read_settings_json() {
+void JSONSettings::read_settings_json() {
   std::cout << "json: Mounting FS" << std::endl;
-  PuaraImpl::mount_spiffs();
+  spiffs.mount_spiffs();
 
   std::cout << "json: Opening settings json file" << std::endl;
   FILE* f = fopen("/spiffs/settings.json", "r");
@@ -186,12 +178,12 @@ void PuaraImpl::read_settings_json() {
   std::ifstream in("/spiffs/settings.json");
   std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 
-  PuaraImpl::read_settings_json_internal(contents);
+  read_settings_json_internal(contents);
   fclose(f);
-  PuaraImpl::unmount_spiffs();
+  spiffs.unmount_spiffs();
 }
 
-void PuaraImpl::read_settings_json_internal(std::string& contents, bool merge) {
+void JSONSettings::read_settings_json_internal(std::string& contents, bool merge) {
   std::cout << "json: Getting data" << std::endl;
   cJSON* root = cJSON_Parse(contents.c_str());
   cJSON* setting = NULL;
@@ -242,9 +234,9 @@ void PuaraImpl::read_settings_json_internal(std::string& contents, bool merge) {
   cJSON_Delete(root);
 }
 
-void PuaraImpl::write_config_json() {
+void JSONSettings::write_config_json() {
   std::cout << "SPIFFS: Mounting FS" << std::endl;
-  PuaraImpl::mount_spiffs();
+  spiffs.mount_spiffs();
 
   std::cout << "SPIFFS: Opening config.json file" << std::endl;
   FILE* f = fopen("/spiffs/config.json", "w");
@@ -269,59 +261,59 @@ void PuaraImpl::write_config_json() {
 
   cJSON* root = cJSON_CreateObject();
 
-  device_json = cJSON_CreateString(device.c_str());
+  device_json = cJSON_CreateString(config.device.c_str());
   cJSON_AddItemToObject(root, "device", device_json);
 
-  id_json = cJSON_CreateNumber(id);
+  id_json = cJSON_CreateNumber(config.id);
   cJSON_AddItemToObject(root, "id", id_json);
 
-  author_json = cJSON_CreateString(author.c_str());
+  author_json = cJSON_CreateString(config.author.c_str());
   cJSON_AddItemToObject(root, "author", author_json);
 
-  institution_json = cJSON_CreateString(institution.c_str());
+  institution_json = cJSON_CreateString(config.institution.c_str());
   cJSON_AddItemToObject(root, "institution", institution_json);
 
-  APpasswd_json = cJSON_CreateString(APpasswd.c_str());
+  APpasswd_json = cJSON_CreateString(config.APpasswd.c_str());
   cJSON_AddItemToObject(root, "APpasswd", APpasswd_json);
 
-  wifiSSID_json = cJSON_CreateString(wifiSSID.c_str());
+  wifiSSID_json = cJSON_CreateString(config.wifiSSID.c_str());
   cJSON_AddItemToObject(root, "wifiSSID", wifiSSID_json);
 
-  wifiPSK_json = cJSON_CreateString(wifiPSK.c_str());
+  wifiPSK_json = cJSON_CreateString(config.wifiPSK.c_str());
   cJSON_AddItemToObject(root, "wifiPSK", wifiPSK_json);
 
-  persistentAP_json = cJSON_CreateNumber(persistentAP);
+  persistentAP_json = cJSON_CreateNumber(config.persistentAP);
   cJSON_AddItemToObject(root, "persistentAP", persistentAP_json);
 
-  oscIP1_json = cJSON_CreateString(oscIP1.c_str());
+  oscIP1_json = cJSON_CreateString(config.oscIP1.c_str());
   cJSON_AddItemToObject(root, "oscIP1", oscIP1_json);
 
-  oscPORT1_json = cJSON_CreateNumber(oscPORT1);
+  oscPORT1_json = cJSON_CreateNumber(config.oscPORT1);
   cJSON_AddItemToObject(root, "oscPORT1", oscPORT1_json);
 
-  oscIP2_json = cJSON_CreateString(oscIP2.c_str());
+  oscIP2_json = cJSON_CreateString(config.oscIP2.c_str());
   cJSON_AddItemToObject(root, "oscIP2", oscIP2_json);
 
-  oscPORT2_json = cJSON_CreateNumber(oscPORT2);
+  oscPORT2_json = cJSON_CreateNumber(config.oscPORT2);
   cJSON_AddItemToObject(root, "oscPORT2", oscPORT2_json);
 
-  localPORT_json = cJSON_CreateNumber(localPORT);
+  localPORT_json = cJSON_CreateNumber(config.localPORT);
   cJSON_AddItemToObject(root, "localPORT", localPORT_json);
 
   std::cout << "\njson: Data stored:\n"
-            << "\ndevice: " << device << "\n"
-            << "id: " << id << "\n"
-            << "author: " << author << "\n"
-            << "institution: " << institution << "\n"
-            << "APpasswd: " << APpasswd << "\n"
-            << "wifiSSID: " << wifiSSID << "\n"
-            << "wifiPSK: " << wifiPSK << "\n"
-            << "persistentAP: " << persistentAP << "\n"
-            << "oscIP1: " << oscIP1 << "\n"
-            << "oscPORT1: " << oscPORT1 << "\n"
-            << "oscIP2: " << oscIP2 << "\n"
-            << "oscPORT2: " << oscPORT2 << "\n"
-            << "localPORT: " << localPORT << "\n"
+            << "\ndevice: " << config.device << "\n"
+            << "id: " << config.id << "\n"
+            << "author: " << config.author << "\n"
+            << "institution: " << config.institution << "\n"
+            << "APpasswd: " << config.APpasswd << "\n"
+            << "wifiSSID: " << config.wifiSSID << "\n"
+            << "wifiPSK: " << config.wifiPSK << "\n"
+            << "persistentAP: " << config.persistentAP << "\n"
+            << "oscIP1: " << config.oscIP1 << "\n"
+            << "oscPORT1: " << config.oscPORT1 << "\n"
+            << "oscIP2: " << config.oscIP2 << "\n"
+            << "oscPORT2: " << config.oscPORT2 << "\n"
+            << "localPORT: " << config.localPORT << "\n"
             << std::endl;
 
   // Save to config.json
@@ -336,12 +328,12 @@ void PuaraImpl::write_config_json() {
   cJSON_Delete(root);
 
   std::cout << "SPIFFS: umounting FS" << std::endl;
-  PuaraImpl::unmount_spiffs();
+  spiffs.unmount_spiffs();
 }
 
-void PuaraImpl::write_settings_json() {
+void JSONSettings::write_settings_json() {
   std::cout << "SPIFFS: Mounting FS" << std::endl;
-  PuaraImpl::mount_spiffs();
+  spiffs.mount_spiffs();
 
   std::cout << "SPIFFS: Opening settings.json file" << std::endl;
   FILE* f = fopen("/spiffs/settings.json", "w");
@@ -381,5 +373,7 @@ void PuaraImpl::write_settings_json() {
   cJSON_Delete(root);
 
   std::cout << "SPIFFS: umounting FS" << std::endl;
-  PuaraImpl::unmount_spiffs();
+  spiffs.unmount_spiffs();
 }
+
+}  // namespace PuaraAPI

@@ -3,11 +3,12 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-namespace PuaraImpl {
+namespace PuaraAPI {
 static const int reboot_delay = 3000;
-}
 
-void PuaraImpl::reboot_with_delay(void* pvParameter) {
+void Device::reboot_with_delay() {
   vTaskDelay(reboot_delay / portTICK_RATE_MS);
   esp_restart();
+}
+
 }
