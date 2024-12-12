@@ -87,12 +87,12 @@ void SPIFFS::unmount_spiffs()
 
 //// CONFIG ////
 
-// Can be improved
 double JSONSettings::getVarNumber(std::string varName)
 {
   auto field = variables_fields.find(varName);
   if(field == variables_fields.end())
   {
+    std::cerr << "Error: Variable '" << varName << "' not found." << std::endl;
     return 0;
   }
   if(*field >= variables.size() || *field < 0)
@@ -107,6 +107,7 @@ std::string JSONSettings::getVarText(std::string varName)
   auto field = variables_fields.find(varName);
   if(field == variables_fields.end())
   {
+    std::cerr << "Error: Variable '" << varName << "' not found." << std::endl;
     return "";
   }
   if(*field >= variables.size() || *field < 0)
@@ -114,7 +115,6 @@ std::string JSONSettings::getVarText(std::string varName)
     return "";
   }
   return variables[*field].textValue;
-  // return variables.at(variables_fields.at(varName)).textValue;
 }
 
 void JSONSettings::read_config_json()
