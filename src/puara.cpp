@@ -152,6 +152,15 @@ unsigned int Puara::id()
   return g_puara.config.id;
 }
 
+bool Puara::persistentIP()
+{
+  return g_puara.config.persistentAP;
+}
+bool Puara::set_persistentIP(bool uservalue)
+{
+  g_puara.config.persistentAP = uservalue;
+}
+
 bool Puara::IP1_ready()
 {
   return g_puara.config.IP1_ready();

@@ -39,6 +39,9 @@ public:
   std::string apIP();
   std::string staIP();
 
+  bool persistentIP();
+  bool set_persistentIP(bool uservalue);
+
   void config_spiffs();
   void mount_spiffs();
   void unmount_spiffs();
