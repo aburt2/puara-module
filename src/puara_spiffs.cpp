@@ -90,31 +90,12 @@ void SPIFFS::unmount_spiffs()
 // Can be improved
 double JSONSettings::getVarNumber(std::string varName)
 {
-  auto field = variables_fields.find(varName);
-  if(field == variables_fields.end())
-  {
-    return 0;
-  }
-  if(*field >= variables.size() || *field < 0)
-  {
-    return 0;
-  }
-  return variables[*field].numberValue;
+  return variables.at(variables_fields.at(varName)).numberValue;
 }
 
 std::string JSONSettings::getVarText(std::string varName)
 {
-  auto field = variables_fields.find(varName);
-  if(field == variables_fields.end())
-  {
-    return "";
-  }
-  if(*field >= variables.size() || *field < 0)
-  {
-    return "";
-  }
-  return variables[*field].textValue;
-  // return variables.at(variables_fields.at(varName)).textValue;
+  return variables.at(variables_fields.at(varName)).textValue;
 }
 
 void JSONSettings::read_config_json()
@@ -460,4 +441,4 @@ void JSONSettings::write_settings_json()
   spiffs.unmount_spiffs();
 }
 
-}
+} 
