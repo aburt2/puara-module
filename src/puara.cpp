@@ -95,11 +95,11 @@ void Puara::stop_webserver(void)
   return g_puara.webserver.stop_webserver();
 }
 
-std::string Puara::get_dmi_name()
+std::string Puara::dmi_name()
 {
   return g_puara.config.dmiName;
 }
-unsigned int Puara::get_version()
+unsigned int Puara::version()
 {
   return g_puara.config.version;
 }
@@ -107,14 +107,60 @@ void Puara::set_version(unsigned int user_version)
 {
   g_puara.config.version = user_version;
 }
-std::string Puara::getIP1()
+std::string Puara::IP1()
 {
   return g_puara.config.oscIP1;
 }
-std::string Puara::getIP2()
+std::string Puara::IP2()
 {
   return g_puara.config.oscIP2;
 }
+int unsigned Puara::PORT1()
+{
+  return g_puara.config.oscPORT1;
+}
+int unsigned Puara::PORT2()
+{
+  return g_puara.config.oscPORT2;
+}
+std::string Puara::PORT1Str()
+{
+  return std::to_string(g_puara.config.oscPORT1);
+}
+std::string Puara::PORT2Str()
+{
+  return std::to_string(g_puara.config.oscPORT2);
+}
+int unsigned Puara::LocalPORT()
+{
+  return g_puara.config.localPORT;
+}
+std::string Puara::LocalPORTStr()
+{
+  return std::to_string(g_puara.config.localPORT);
+}
+std::string Puara::staIP()
+{
+  return g_puara.wifi.currentSTA_IP;
+}
+std::string Puara::apIP()
+{
+  return g_puara.wifi.currentAP_IP;
+}
+unsigned int Puara::id()
+{
+  return g_puara.config.id;
+}
+
+bool Puara::persistentAP()
+{
+  return g_puara.config.persistentAP;
+}
+bool Puara::set_persistentAP(bool uservalue)
+{
+  g_puara.config.persistentAP = uservalue;
+}
+
 bool Puara::IP1_ready()
 {
   return g_puara.config.IP1_ready();
@@ -123,30 +169,7 @@ bool Puara::IP2_ready()
 {
   return g_puara.config.IP2_ready();
 }
-int unsigned Puara::getPORT1()
-{
-  return g_puara.config.oscPORT1;
-}
-int unsigned Puara::getPORT2()
-{
-  return g_puara.config.oscPORT2;
-}
-std::string Puara::getPORT1Str()
-{
-  return std::to_string(g_puara.config.oscPORT1);
-}
-std::string Puara::getPORT2Str()
-{
-  return std::to_string(g_puara.config.oscPORT2);
-}
-int unsigned Puara::getLocalPORT()
-{
-  return g_puara.config.localPORT;
-}
-std::string Puara::getLocalPORTStr()
-{
-  return std::to_string(g_puara.config.localPORT);
-}
+
 
 void Puara::config_spiffs()
 {
