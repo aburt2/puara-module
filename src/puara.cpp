@@ -159,6 +159,8 @@ bool Puara::persistentAP()
 bool Puara::set_persistentAP(bool uservalue)
 {
   g_puara.config.persistentAP = uservalue;
+
+  return 1;
 }
 
 bool Puara::IP1_ready()
