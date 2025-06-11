@@ -32,7 +32,7 @@ void WiFi::wifi_init()
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
   // Set device hostname
-  esp_err_t setname = esp_netif_set_hostname(sta_netif, config.dmiName.c_str());
+  esp_err_t setname = esp_netif_set_hostname(ap_netif, config.dmiName.c_str());
   if(setname != ESP_OK)
   {
     std::cout << "wifi_init: failed to set hostname: " << config.dmiName << std::endl;
