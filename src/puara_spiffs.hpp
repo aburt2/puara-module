@@ -1,6 +1,6 @@
 #pragma once
 #include <esp_err.h>
-#include <esp_spi_flash.h>
+#include <spi_flash_mmap.h>
 #include <esp_spiffs.h>
 
 #include <unordered_map>

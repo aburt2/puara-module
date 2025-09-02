@@ -134,7 +134,7 @@ void Serial::uart_monitor()
 
   // Install UART driver (we don't need an event queue here)
   // In this example we don't even use a buffer for sending data.
-  uart_driver_install(uart_num0, UART_FIFO_LEN + 1, 0, 0, NULL, 0);
+  uart_driver_install(uart_num0, UART_HW_FIFO_LEN(uart_num0) + 1, 0, 0, NULL, 0);
 
   while(1)
   {
