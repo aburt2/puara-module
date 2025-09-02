@@ -65,13 +65,13 @@ struct PuaraGlobal
     serial.module_monitor = monitor;
 
     // some delay added as start listening blocks the hw monitor
-    std::cout << "Starting serial monitor..." << std::endl;
-    vTaskDelay(50 / portTICK_RATE_MS);
-    if(serial.start_serial_listening())
-    {
-    };
-    vTaskDelay(50 / portTICK_RATE_MS);
-    std::cout << "serial listening ready" << std::endl;
+    // std::cout << "Starting serial monitor..." << std::endl;
+    // vTaskDelay(50 / portTICK_RATE_MS);
+    // if(serial.start_serial_listening())
+    // {
+    // };
+    // vTaskDelay(50 / portTICK_RATE_MS);
+    // std::cout << "serial listening ready" << std::endl;
 
     std::cout << "Puara Start Done!\n\n  Type \"reboot\" in the serial monitor to reset "
                  "the ESP32.\n\n";
